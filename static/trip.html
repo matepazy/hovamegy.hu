@@ -1,0 +1,2225 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <title>Útvonaltervező - HovaMegy?</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #2563eb;
+      --secondary-color: #64748b;
+      --success-color: #10b981;
+      --warning-color: #f59e0b;
+      --error-color: #ef4444;
+      --background-white: #ffffff;
+      --background-gray: #f8fafc;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --border-color: #e2e8f0;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      --border-radius: 12px;
+      --border-radius-sm: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--background-gray);
+    }
+
+    .container {
+      display: flex;
+      height: 100vh;
+    }
+
+    .sidebar {
+      width: 500px;
+      background: var(--background-white);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border-color);
+      background: var(--background-white);
+    }
+
+    .header h1 {
+      margin: 0 0 8px 0;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .header p {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .back-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--background-gray);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-sm);
+      color: var(--text-primary);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+      margin-bottom: 16px;
+      cursor: pointer;
+    }
+
+    .back-button:hover {
+      background: var(--border-color);
+    }
+
+    .itinerary-back-button {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: var(--primary-color);
+      border: none;
+      border-radius: var(--border-radius-sm);
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 16px;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .itinerary-back-button:hover {
+      background: #1d4ed8;
+    }
+
+    .itinerary-back-button.show {
+      display: flex;
+    }
+
+    .form-section {
+      padding: 20px;
+      flex: 1;
+      overflow-y: auto;
+      transition: all 0.3s ease;
+    }
+
+    .form-section.hidden {
+      display: none;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-sm);
+      font-size: 14px;
+      background: var(--background-white);
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    /* Force 24-hour format for time input */
+    input[type="time"]::-webkit-datetime-edit-ampm-field {
+      display: none !important;
+    }
+    
+    input[type="time"]::-webkit-datetime-edit-meridiem-field {
+      display: none !important;
+    }
+    
+    input[type="time"]::-webkit-datetime-edit {
+      -webkit-appearance: none;
+    }
+    
+    input[type="time"] {
+      -webkit-appearance: none;
+      -moz-appearance: textfield;
+      appearance: none;
+    }
+    
+    /* Additional browser-specific hiding */
+    input[type="time"]::-ms-clear {
+      display: none;
+    }
+    
+    input[type="time"]::-webkit-calendar-picker-indicator {
+      opacity: 1;
+    }
+
+    .form-select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-sm);
+      font-size: 14px;
+      background: var(--background-white);
+      cursor: pointer;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: var(--border-radius-sm);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: var(--primary-color);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #1d4ed8;
+    }
+
+    .btn-secondary {
+      background: var(--background-gray);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border-color);
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .map-container {
+      flex: 1;
+      position: relative;
+    }
+
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+
+    .map-instructions {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 12px 16px;
+      border-radius: var(--border-radius-sm);
+      box-shadow: var(--shadow-md);
+      font-size: 12px;
+      color: var(--text-secondary);
+      max-width: 200px;
+      z-index: 1000;
+    }
+
+    .results-section {
+      border-top: 2px solid var(--border-color);
+      max-height: 50vh;
+      overflow-y: auto;
+      padding: 16px;
+      transition: all 0.3s ease;
+    }
+
+    .results-section.expanded {
+      max-height: none;
+      flex: 1;
+      border-top: none;
+    }
+
+    .trip-result {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-radius: var(--border-radius-sm);
+      margin-bottom: 8px;
+      background: var(--background-white);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .trip-result:hover {
+      background: var(--background-gray);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
+    }
+
+    .trip-result:last-child {
+      border-bottom: none;
+    }
+
+    .trip-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .trip-duration {
+      font-weight: 700;
+      color: var(--text-primary);
+      font-size: 18px;
+      background: linear-gradient(135deg, var(--primary-color), #1d4ed8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .trip-time-range {
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: 15px;
+      background: var(--background-gray);
+      padding: 8px 12px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 15px;
+    }
+
+    
+
+    .time-separator {
+      color: var(--text-secondary);
+      font-weight: 400;
+    }
+
+    .trip-route-visual {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      padding: 8px 0;
+    }
+
+    .trip-mode {
+      background: var(--secondary-color);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 16px;
+      font-size: 11px;
+      font-weight: 700;
+      min-width: 40px;
+      text-align: center;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      border: 2px solid white;
+    }
+
+    .trip-mode.RAIL { background: linear-gradient(135deg, var(--primary-color), #1d4ed8); }
+    .trip-mode.BUS { background: linear-gradient(135deg, #338dff, #2563eb); }
+    .trip-mode.COACH { background: linear-gradient(135deg, var(--warning-color), #d97706); }
+    .trip-mode.TRAM { background: linear-gradient(135deg, #f1e320, #eab308); color: #1e293b; }
+    .trip-mode.SUBWAY { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    .trip-mode.WALK { background: linear-gradient(135deg, #6b7280, #4b5563); }
+
+    .route-connector {
+      width: 12px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--border-color), #cbd5e1);
+      margin: 0 4px;
+      border-radius: 2px;
+    }
+
+    .trip-summary {
+      font-size: 13px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      line-height: 1.4;
+    }
+
+    .trip-route-info {
+      font-weight: 500;
+      color: var(--text-primary);
+      flex: 1;
+    }
+
+    .trip-transfers {
+      background: linear-gradient(135deg, var(--success-color), #059669);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+    }
+
+    .trip-transfers.no-transfers {
+      background: linear-gradient(135deg, var(--success-color), #059669);
+    }
+
+    .trip-transfers.has-transfers {
+      background: linear-gradient(135deg, var(--warning-color), #d97706);
+    }
+
+    .trip-details {
+      display: none;
+      margin-top: 16px;
+      padding: 0;
+      background: transparent;
+    }
+
+    .trip-details.expanded {
+      display: block;
+    }
+
+    /* Google Maps style timeline */
+    .trip-timeline {
+      position: relative;
+      padding-left: 40px;
+    }
+
+    .trip-timeline::before {
+      content: '';
+      position: absolute;
+      left: 20px;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: linear-gradient(180deg, var(--primary-color), #cbd5e1);
+      border-radius: 2px;
+    }
+
+    .timeline-item {
+      position: relative;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+    }
+
+    .timeline-item:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Station circles */
+    .station-marker {
+      position: absolute;
+      left: -26px;
+      top: 8px;
+      width: 16px;
+      height: 16px;
+      background: white;
+      border: 4px solid var(--primary-color);
+      border-radius: 50%;
+      z-index: 2;
+    }
+
+    .station-marker.start {
+      border-color: var(--success-color);
+      background: var(--success-color);
+    }
+
+    .station-marker.end {
+      border-color: var(--error-color);
+      background: var(--error-color);
+    }
+
+    /* Transport mode badge */
+     .transport-badge {
+       display: none;
+     }
+
+    .transport-badge.RAIL { background: linear-gradient(135deg, var(--primary-color), #1d4ed8); }
+    .transport-badge.BUS { background: linear-gradient(135deg, #338dff, #2563eb); }
+    .transport-badge.COACH { background: linear-gradient(135deg, var(--warning-color), #d97706); }
+    .transport-badge.TRAM { background: linear-gradient(135deg, #f1e320, #eab308); color: #1e293b; }
+    .transport-badge.SUBWAY { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    .transport-badge.WALK { background: linear-gradient(135deg, #6b7280, #4b5563); }
+
+    /* Station info */
+    .station-info {
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      border-radius: 8px;
+      padding: 12px 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border: 1px solid #cbd5e1;
+    }
+
+    .station-time {
+      font-weight: 700;
+      color: var(--text-primary);
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+
+    .station-name {
+      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .platform-info {
+      font-size: 11px;
+      color: var(--text-secondary);
+      background: var(--warning-color);
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    .intermediate-stops {
+      margin-top: 8px;
+      background: rgba(37, 99, 235, 0.05);
+      border-radius: 6px;
+      border-left: 3px solid var(--primary-color);
+      overflow: hidden;
+    }
+
+    .stops-dropdown-toggle {
+      padding: 8px 12px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background-color 0.2s ease;
+      user-select: none;
+    }
+
+    .stops-dropdown-toggle:hover {
+      background: rgba(37, 99, 235, 0.1);
+    }
+
+    .stops-summary {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--primary-color);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .dropdown-arrow {
+      font-size: 10px;
+      color: var(--primary-color);
+      transition: transform 0.2s ease;
+    }
+
+    .stops-dropdown {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+      background: white;
+      border-top: 1px solid rgba(37, 99, 235, 0.1);
+    }
+
+    .stops-dropdown.expanded {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .stop-item {
+      display: flex;
+      align-items: center;
+      font-size: 11px;
+      padding: 6px 12px;
+      border-bottom: 1px solid rgba(37, 99, 235, 0.05);
+      transition: background-color 0.2s ease;
+    }
+
+    .stop-item:hover {
+      background: rgba(37, 99, 235, 0.03);
+    }
+
+    .stop-item:last-child {
+      border-bottom: none;
+    }
+
+    .stop-bullet {
+      width: 6px;
+      height: 6px;
+      background: var(--primary-color);
+      border-radius: 50%;
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+
+    .stop-details {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      gap: 8px;
+    }
+
+    .stop-name {
+      color: var(--text-primary);
+      font-weight: 500;
+      flex: 1;
+    }
+
+    .stop-time {
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 10px;
+      background: var(--background-gray);
+      padding: 2px 6px;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+
+    .stop-time.realtime {
+      color: var(--success-color);
+      background: rgba(34, 197, 94, 0.1);
+      font-weight: 700;
+    }
+
+    .delay-info {
+      font-size: 9px;
+      color: var(--error-color);
+      background: rgba(239, 68, 68, 0.1);
+      padding: 1px 4px;
+      border-radius: 2px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+     .get-off-info {
+       margin-top: 8px;
+       padding: 6px 8px;
+       background: linear-gradient(135deg, #fef3c7, #fde68a);
+       border-radius: 6px;
+       border-left: 3px solid var(--warning-color);
+       display: flex;
+       align-items: center;
+       gap: 6px;
+       flex-wrap: wrap;
+     }
+
+     .get-off-label {
+       font-size: 11px;
+       font-weight: 700;
+       color: #92400e;
+       text-transform: uppercase;
+       letter-spacing: 0.5px;
+     }
+
+     .get-off-station {
+       font-size: 13px;
+       font-weight: 600;
+       color: #1e293b;
+       background: white;
+       padding: 2px 6px;
+       border-radius: 4px;
+       border: 1px solid #d97706;
+     }
+
+     .get-off-platform {
+       font-size: 10px;
+       font-weight: 600;
+       color: white;
+       background: var(--warning-color);
+       padding: 2px 5px;
+       border-radius: 3px;
+     }
+
+     /* Vehicle arrival/departure time styling */
+     .vehicle-arrival-info,
+     .vehicle-departure-info,
+     .final-arrival-info {
+       background: rgba(16, 185, 129, 0.1);
+       border-left: 3px solid var(--success-color);
+       padding: 4px 8px;
+       border-radius: 4px;
+       margin-top: 6px;
+     }
+
+     .vehicle-departure-info {
+       background: rgba(245, 158, 11, 0.1);
+       border-left-color: var(--warning-color);
+     }
+
+     .delay-info {
+       background: rgba(239, 68, 68, 0.1);
+       padding: 1px 4px;
+       border-radius: 3px;
+       border: 1px solid var(--error-color);
+     }
+
+     .route-info {
+       display: flex;
+       align-items: center;
+       gap: 8px;
+       font-size: 12px;
+       color: var(--text-secondary);
+     }
+
+    .route-number {
+      background: var(--background-gray);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* Walking segment */
+    .walking-segment {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-style: italic;
+    }
+
+    .walking-segment::before {
+      content: '🚶';
+      font-size: 14px;
+    }
+
+    .expand-icon {
+      margin-left: auto;
+      transition: all 0.3s ease;
+      font-size: 14px;
+      color: var(--text-secondary);
+      background: var(--background-gray);
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--border-color);
+    }
+
+    .expand-icon:hover {
+      background: var(--primary-color);
+      color: white;
+      border-color: var(--primary-color);
+    }
+
+    .trip-result.expanded {
+      background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+      box-shadow: var(--shadow-lg);
+      position: relative;
+    }
+    
+    .trip-result.expanded::before {
+      position: absolute;
+      top: -8px;
+      right: 8px;
+      background: var(--primary-color);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 600;
+      z-index: 10;
+    }
+    
+    .trip-result.expanded .expand-icon {
+      transform: rotate(180deg);
+      background: var(--primary-color);
+      color: white;
+      border-color: var(--primary-color);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-secondary);
+    }
+
+    .error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #dc2626;
+      padding: 16px 20px;
+      font-size: 14px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-secondary);
+    }
+
+    .coordinate-display {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .autocomplete-container {
+      position: relative;
+    }
+
+    .suggestions-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--background-white);
+      border: 1px solid var(--border-color);
+      border-top: none;
+      border-radius: 0 0 var(--border-radius-sm) var(--border-radius-sm);
+      box-shadow: var(--shadow-md);
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 1000;
+      display: none;
+    }
+
+    .suggestion-item {
+      padding: 12px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border-color);
+      transition: background-color 0.2s;
+    }
+
+    .suggestion-item:hover {
+      background: var(--background-gray);
+    }
+
+    .suggestion-item:last-child {
+      border-bottom: none;
+    }
+
+    .suggestion-name {
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .suggestion-details {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .suggestion-modes {
+      margin-top: 4px;
+      display: flex;
+      gap: 4px;
+    }
+
+    .mode-icon {
+      font-size: 14px;
+      display: inline-block;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        height: 100vh;
+      }
+
+      .map-container {
+        display: none;
+      }
+
+      .map-container.mobile-map-visible {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+        background: white;
+      }
+
+      .map-container.mobile-map-visible #map {
+        height: 100%;
+        width: 100%;
+      }
+
+      .mobile-map-close {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 44px;
+        height: 44px;
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: var(--shadow-lg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+      }
+
+      .mobile-map-close:hover {
+        background: #1d4ed8;
+        transform: scale(1.05);
+      }
+
+      .mobile-map-close:active {
+        transform: scale(0.95);
+      }
+
+      .map-instructions {
+        display: none;
+      }
+
+      /* Mobile time selection fixes */
+      .form-select {
+        font-size: 16px; /* Prevents zoom on iOS */
+        min-height: 44px; /* Touch-friendly minimum height */
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"><path fill="%23666" d="M2 0L0 2h4zm0 5L0 3h4z"/></svg>');
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        background-size: 12px;
+        padding-right: 32px;
+      }
+
+      /* Make date and time stack vertically on mobile */
+      .form-group > div[style*="display: flex"] {
+        flex-direction: column !important;
+        gap: 6px !important;
+        align-items: stretch !important;
+      }
+
+      /* Ensure date input takes full width on mobile */
+      #trip-date {
+        width: 100% !important;
+        flex: none !important;
+      }
+
+      /* Time container adjustments for mobile */
+      .form-group div[style*="align-items: center"] {
+        justify-content: center !important;
+        max-width: 200px !important;
+        margin: 0 auto !important;
+      }
+
+      /* Make time selects more visible on mobile */
+      #trip-hour, #trip-minute {
+        min-width: 80px;
+        font-weight: 600;
+        color: var(--text-primary) !important;
+        background-color: var(--background-white) !important;
+        border: 2px solid var(--border-color) !important;
+      }
+
+      #trip-hour:focus, #trip-minute:focus {
+        border-color: var(--primary-color) !important;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+      }
+
+      /* Style the time separator */
+      span[style*="font-weight: bold"] {
+        font-size: 18px;
+        color: var(--text-primary) !important;
+        padding: 0 4px;
+      }
+
+      /* Make date input more mobile-friendly */
+      #trip-date {
+        font-size: 16px;
+        min-height: 44px;
+        font-weight: 600;
+        color: var(--text-primary) !important;
+        border: 2px solid var(--border-color) !important;
+      }
+
+      #trip-date:focus {
+        border-color: var(--primary-color) !important;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+      }
+
+      /* Improve radio button visibility on mobile */
+      input[type="radio"] {
+        width: 18px;
+        height: 18px;
+        margin-right: 8px;
+      }
+
+      /* Make labels more touch-friendly */
+      label[style*="display: flex"] {
+        padding: 8px 0;
+        font-size: 16px !important;
+        min-height: 44px;
+        align-items: center !important;
+      }
+
+      /* Mobile map button styles */
+      .mobile-map-button-container {
+        display: block;
+        padding: 16px 0;
+        border-top: 1px solid var(--border-color);
+        margin-top: 16px;
+      }
+
+      .mobile-map-button {
+        width: 100%;
+        padding: 12px 16px;
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: var(--border-radius-sm);
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 44px;
+      }
+
+      .mobile-map-button:hover {
+        background: #1d4ed8;
+      }
+
+      .mobile-map-button:active {
+        transform: translateY(1px);
+      }
+    }
+
+    /* Hide mobile map button on desktop */
+    @media (min-width: 769px) {
+      .mobile-map-button-container {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <div class="header">
+        <a href="/" class="back-button">
+          ← Vissza a térképhez
+        </a>
+        <button class="itinerary-back-button" onclick="closeItinerary()">
+          ← Vissza az útvonalakhoz
+        </button>
+        <h1>Útvonaltervező</h1>
+      </div>
+      
+      <div class="form-section">
+        <div class="form-group">
+          <label class="form-label">Indulási pont</label>
+          <div class="autocomplete-container">
+            <input type="text" id="from-input" class="form-input" placeholder="Állomás neve vagy kattints a térképre" autocomplete="off">
+            <div id="from-suggestions" class="suggestions-dropdown"></div>
+          </div>
+          <div id="from-coords" class="coordinate-display"></div>
+          <input type="hidden" id="from-lat">
+          <input type="hidden" id="from-lon">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Célállomás</label>
+          <div class="autocomplete-container">
+            <input type="text" id="to-input" class="form-input" placeholder="Állomás neve vagy kattints a térképre" autocomplete="off">
+            <div id="to-suggestions" class="suggestions-dropdown"></div>
+          </div>
+          <div id="to-coords" class="coordinate-display"></div>
+          <input type="hidden" id="to-lat">
+          <input type="hidden" id="to-lon">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Mikor?</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="date" id="trip-date" class="form-input" style="flex: 1;">
+            <div style="display: flex; gap: 4px; align-items: center; flex: 1;">
+              <select id="trip-hour" class="form-select" style="flex: 1;">
+                <!-- Hours will be populated by JavaScript -->
+              </select>
+              <span style="display: flex; align-items: center; font-weight: bold; color: var(--text-primary); padding: 0 8px;">:</span>
+              <select id="trip-minute" class="form-select" style="flex: 1;">
+                <!-- Minutes will be populated by JavaScript -->
+              </select>
+            </div>
+            <input type="hidden" id="trip-time" name="trip-time">
+          </div>
+          <div style="margin-top: 8px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-secondary);">
+              <input type="radio" name="time-type" value="departure" checked>
+              Indulási idő
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-secondary); margin-top: 2px;">
+              <input type="radio" name="time-type" value="arrival">
+              Érkezési idő
+            </label>
+          </div>
+        </div>
+        
+        <div class="form-group" style="display: none;">
+          <label class="form-label">Útvonalak száma</label>
+          <select id="num-itineraries" class="form-select">
+            <option value="1">1 útvonal</option>
+            <option value="2">2 útvonal</option>
+            <option value="3" selected>3 útvonal</option>
+            <option value="5">5 útvonal</option>
+          </select>
+        </div>
+        
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="planTrip()">
+            🗺️ Útvonal tervezése
+          </button>
+          <button class="btn btn-secondary" onclick="clearTrip()">
+            🗑️ Törlés
+          </button>
+        </div>
+      </div>
+      
+      <div id="results" class="results-section" style="display: none;">
+        <!-- Results will be populated here -->
+      </div>
+    </div>
+    
+    <div class="map-container">
+      <div id="map"></div>
+      <button class="mobile-map-close" onclick="closeMobileMap()" style="display: none;">×</button>
+      <div class="map-instructions">
+        💡 Kattints a térképre az indulási pont és célállomás kijelöléséhez
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // Initialize map
+    const map = L.map('map').setView([47.162494, 19.503304], 8);
+    
+    // Add tile layers
+    const esriSatellite = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      {
+        attribution: 'Tiles © Esri & contributors',
+        maxZoom: 18
+      }
+    );
+    
+    const esriLabels = L.tileLayer(
+      'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+      {
+        attribution: 'Labels © Esri',
+        maxZoom: 18,
+        pane: 'overlayPane'
+      }
+    );
+    
+    esriSatellite.addTo(map);
+    esriLabels.addTo(map);
+    
+    // Trip planning variables
+    let tripMarkers = [];
+    let routeLayer = null;
+    let routeLayers = [];
+    let currentPlan = null;
+    
+    // Map click handler
+    map.on('click', function(e) {
+      const lat = e.latlng.lat;
+      const lon = e.latlng.lng;
+      
+      // Determine which field to fill
+      const fromLat = document.getElementById('from-lat').value;
+      const toLat = document.getElementById('to-lat').value;
+      
+      if (!fromLat) {
+        setLocation('from', lat, lon);
+      } else if (!toLat) {
+        setLocation('to', lat, lon);
+      } else {
+        // Both filled, replace destination
+        setLocation('to', lat, lon);
+      }
+    });
+    
+    function setLocation(type, lat, lon) {
+      const input = document.getElementById(type + '-input');
+      const latInput = document.getElementById(type + '-lat');
+      const lonInput = document.getElementById(type + '-lon');
+      const coordsDiv = document.getElementById(type + '-coords');
+      
+      latInput.value = lat.toFixed(6);
+      lonInput.value = lon.toFixed(6);
+      input.value = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+      coordsDiv.textContent = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+      
+      addMarker(lat, lon, type);
+    }
+    
+    function addMarker(lat, lon, type) {
+      // Remove existing marker of same type
+      tripMarkers = tripMarkers.filter(marker => {
+        if (marker.options.markerType === type) {
+          map.removeLayer(marker);
+          return false;
+        }
+        return true;
+      });
+      
+      // Create new marker
+      const color = type === 'from' ? '#10b981' : '#ef4444';
+      const label = type === 'from' ? 'A' : 'B';
+      
+      const icon = L.divIcon({
+        html: `
+          <div style="
+            background: ${color};
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+          ">${label}</div>
+        `,
+        className: 'trip-marker',
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
+      });
+      
+      const marker = L.marker([lat, lon], {
+        icon: icon,
+        markerType: type
+      }).addTo(map);
+      
+      tripMarkers.push(marker);
+    }
+    
+    async function planTrip() {
+      const fromLat = document.getElementById('from-lat').value;
+      const fromLon = document.getElementById('from-lon').value;
+      const toLat = document.getElementById('to-lat').value;
+      const toLon = document.getElementById('to-lon').value;
+      const numItineraries = document.getElementById('num-itineraries').value;
+      const tripDate = document.getElementById('trip-date').value;
+      const tripTime = document.getElementById('trip-time').value;
+      const timeType = document.querySelector('input[name="time-type"]:checked').value;
+      
+      if (!fromLat || !fromLon || !toLat || !toLon) {
+        alert('Kérlek add meg mind az indulási pontot, mind a célállomást!');
+        return;
+      }
+      
+      // Hide form section and show back button when starting search
+      const formSection = document.querySelector('.form-section');
+      const resultsSection = document.querySelector('.results-section');
+      const backButton = document.querySelector('.itinerary-back-button');
+      const mapBackButton = document.querySelector('.back-button');
+      
+      formSection.classList.add('hidden');
+      resultsSection.classList.add('expanded');
+      backButton.classList.add('show');
+      mapBackButton.style.display = 'none';
+      
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.style.display = 'block';
+      resultsDiv.innerHTML = '<div class="loading">Útvonal tervezése...</div>';
+      
+      // Prepare request body
+      const requestBody = {
+        from: { lat: parseFloat(fromLat), lon: parseFloat(fromLon) },
+        to: { lat: parseFloat(toLat), lon: parseFloat(toLon) },
+        numItineraries: parseInt(numItineraries)
+      };
+      
+      // Add date and time if specified
+      if (tripDate && tripTime) {
+        // Create datetime string in local timezone format (YYYY-MM-DDTHH:MM)
+        // Don't convert to UTC to avoid timezone offset issues
+        requestBody.dateTime = `${tripDate}T${tripTime}`;
+        requestBody.arriveBy = timeType === 'arrival';
+      }
+      
+      try {
+        const response = await fetch('/api/plan', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestBody)
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Hiba történt az útvonal tervezése során');
+        }
+        
+        currentPlan = data.plan;
+        displayResults(data.plan);
+        
+      } catch (error) {
+        console.error('Trip planning error:', error);
+        resultsDiv.innerHTML = `<div class="error">Hiba: ${error.message}</div>`;
+      }
+    }
+    
+    function displayResults(plan) {
+      const resultsDiv = document.getElementById('results');
+      
+      if (!plan || !plan.itineraries || plan.itineraries.length === 0) {
+        resultsDiv.innerHTML = '<div class="error">Nem található útvonal a megadott pontok között.</div>';
+        return;
+      }
+      
+      let html = '';
+      
+      plan.itineraries.forEach((itinerary, index) => {
+        const durationMinutes = Math.round(itinerary.duration / 60);
+        const hours = Math.floor(durationMinutes / 60);
+        const minutes = durationMinutes % 60;
+        const durationText = hours > 0 ? `${hours}ó ${minutes}p` : `${minutes}p`;
+        
+        // Get start and end times
+        const startTime = new Date(itinerary.legs[0].startTime).toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' });
+        const endTime = new Date(itinerary.legs[itinerary.legs.length - 1].endTime).toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' });
+        
+        // Count transfers (non-walking legs minus 1)
+        const transitLegs = itinerary.legs.filter(leg => leg.mode !== 'WALK');
+        const transfers = Math.max(0, transitLegs.length - 1);
+        
+        html += `<div class="trip-result">`;
+        
+        // Header with duration and time range
+        html += `<div class="trip-header">`;
+        html += `<div class="trip-duration">${durationText}</div>`;
+        html += `<div class="trip-time-range">`;
+        html += `<span class="departure-time">${startTime}</span>`;
+        html += `<span class="time-separator">-</span>`;
+        html += `<span class="arrival-time">${endTime}</span>`;
+        html += `</div>`;
+        html += `<div class="expand-icon">▼</div>`;
+        html += `</div>`;
+        
+        // Visual route representation
+        html += `<div class="trip-route-visual">`;
+        
+        itinerary.legs.forEach((leg, legIndex) => {
+          if (leg.mode !== 'WALK') {
+            // Show route number for transit - prioritize actual route numbers
+            let routeText;
+            
+            // For rail, prioritize tripShortName, for others use route shortName
+            if (leg.mode === 'RAIL') {
+              routeText = (leg.trip && leg.trip.tripShortName) ? leg.trip.tripShortName : getModeIcon(leg.mode);
+            } else {
+              // For other modes, use route number or fallback
+              if (leg.route && leg.route.shortName) {
+                routeText = leg.route.shortName;
+              } else if (leg.route && leg.route.longName) {
+                // Extract numbers from long name if available
+                const numberMatch = leg.route.longName.match(/\d+/);
+                routeText = numberMatch ? numberMatch[0] : leg.route.longName;
+              } else {
+                routeText = getModeIcon(leg.mode);
+              }
+            }
+            
+            html += `<div class="trip-mode ${leg.mode}">${routeText}</div>`;
+          } else if (legIndex === 0 || legIndex === itinerary.legs.length - 1) {
+            // Show walking only at start/end
+            html += `<div class="trip-mode ${leg.mode}">🚶</div>`;
+          }
+          
+          
+        });
+        
+        html += `</div>`;
+        
+        // Summary information with transfer details
+        html += `<div class="trip-summary">`;
+        // Use actual station names instead of generic origin/destination
+        const originName = itinerary.legs[0].from.name || 'Indulás';
+        const destinationName = itinerary.legs[itinerary.legs.length - 1].to.name || 'Érkezés';
+        
+        
+        // Show transfer information with station names
+        if (transfers > 0) {
+          const transferStations = [];
+          for (let i = 0; i < itinerary.legs.length - 1; i++) {
+            const currentLeg = itinerary.legs[i];
+            const nextLeg = itinerary.legs[i + 1];
+            if (currentLeg.mode !== 'WALK' && nextLeg.mode !== 'WALK') {
+              transferStations.push(currentLeg.to.name);
+            }
+          }
+          
+          if (transferStations.length > 0) {
+            html += `<span class="trip-transfers has-transfers">${transfers} átszállás</span>`;
+          } else {
+            html += `<span class="trip-transfers has-transfers">${transfers} átszállás</span>`;
+          }
+        } else {
+          html += `<span class="trip-transfers no-transfers">Közvetlen</span>`;
+        }
+        html += `</div>`;
+        
+        // Detailed trip information (initially hidden) - Google Maps timeline style
+        html += `<div class="trip-details" id="details-${index}">`;
+        html += `<div class="trip-timeline">`;
+        
+        itinerary.legs.forEach((leg, legIndex) => {
+          const legStartTime = new Date(leg.startTime).toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' });
+          const legEndTime = new Date(leg.endTime).toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' });
+          
+          // Start station
+          if (legIndex === 0) {
+            html += `<div class="timeline-item">`;
+            html += `<div class="station-marker start"></div>`;
+            html += `<div class="station-info">`;
+            html += `<div class="station-time">${legStartTime}</div>`;
+            html += `<div class="station-name">${leg.from.name || 'Indulási pont'}</div>`;
+            
+            // Add platform information if available
+            if (leg.from.platformCode) {
+              html += `<div class="platform-info">Vágány: ${leg.from.platformCode}</div>`;
+            }
+            
+            // Add expected vehicle arrival time if available
+            if (leg.mode !== 'WALK' && leg.realTime) {
+              const expectedArrival = leg.realTime.arrival || leg.realTime.departure;
+              if (expectedArrival) {
+                const arrivalTime = new Date(expectedArrival).toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' });
+                html += `<div class="vehicle-arrival-info" style="font-size: 11px; color: var(--success-color); font-weight: 600; margin-top: 4px;">Jármű várható érkezése: ${arrivalTime}</div>`;
+              }
+            }
+            
+            html += `</div>`;
+            html += `</div>`;
+          }
+          
+          // Transport segment (if not walking or if it's a significant walk)
+          if (leg.mode !== 'WALK' || (leg.mode === 'WALK' && legIndex > 0 && legIndex < itinerary.legs.length - 1)) {
+            html += `<div class="timeline-item">`;
+            html += `<div class="station-marker"></div>`;
+            
+            // Get route number or fallback to mode text
+            let legModeText;
+            if (leg.mode === 'RAIL') {
+              legModeText = (leg.trip && leg.trip.tripShortName) ? leg.trip.tripShortName : getModeText(leg.mode);
+            } else if (leg.mode === 'WALK') {
+              legModeText = 'Gyalog';
+            } else {
+              // For other modes, use route number or fallback
+              if (leg.route && leg.route.shortName) {
+                legModeText = leg.route.shortName;
+              } else if (leg.route && leg.route.longName) {
+                // Extract numbers from long name if available
+                const numberMatch = leg.route.longName.match(/\d+/);
+                legModeText = numberMatch ? numberMatch[0] : leg.route.longName;
+              } else {
+                legModeText = getModeText(leg.mode);
+              }
+            }
+            
+            if (leg.mode === 'WALK') {
+               html += `<div class="walking-segment">`;
+               const walkDuration = Math.round((new Date(leg.endTime) - new Date(leg.startTime)) / 60000);
+               html += `${walkDuration} perc séta`;
+               if (leg.distance) {
+                 const distanceM = Math.round(leg.distance);
+                 html += ` (${distanceM}m)`;
+               }
+               html += `</div>`;
+             } else {
+               html += `<div class="transport-badge ${leg.mode}"></div>`;
+               html += `<div class="station-info">`;
+               
+               // Route title prominently displayed
+                const modeColor = getModeGradient(leg.mode);
+                const textColor = leg.mode === 'TRAM' ? '#1e293b' : 'white';
+                html += `<div class="station-name" style="background: ${modeColor}; color: ${textColor}; font-weight: 700; font-size: 16px; margin-bottom: 4px; padding: 6px 12px; border-radius: 8px; display: inline-block;">${legModeText}</div>`;
+               
+               // Route information and destination
+               if (leg.trip && leg.trip.tripHeadsign) {
+                 html += `<div class="route-info">`;
+                 html += `<span>→ ${leg.trip.tripHeadsign}</span>`;
+                 html += `</div>`;
+               }
+               
+               // Show where to get off
+               html += `<div class="get-off-info">`;
+               html += `<span class="get-off-label">Leszállás:</span>`;
+               html += `<span class="get-off-station">${leg.to.name || 'Célállomás'}</span>`;
+               if (leg.to.platformCode) {
+                 html += `<span class="get-off-platform">Vágány: ${leg.to.platformCode}</span>`;
+               }
+               html += `</div>`;
+               
+               // Add expected vehicle departure time if available
+               if (leg.realTime && leg.realTime.departure) {
+                 const departureTime = new Date(leg.realTime.departure).toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' });
+                 html += `<div class="vehicle-departure-info" style="font-size: 11px; color: var(--warning-color); font-weight: 600; margin-top: 4px;">Jármű várható indulása: ${departureTime}</div>`;
+               }
+               
+               // Show intermediate stops count and details with dropdown
+               if (leg.intermediateStops && leg.intermediateStops.length > 0) {
+                 const stopsId = `stops-${index}-${legIndex}`;
+                 html += `<div class="intermediate-stops">`;
+                 html += `<div class="stops-dropdown-toggle" onclick="toggleStopsDropdown('${stopsId}', event)">`;
+                 html += `<span class="stops-summary">${leg.intermediateStops.length} megálló</span>`;
+                 html += `<span class="dropdown-arrow">▼</span>`;
+                 html += `</div>`;
+                 
+                 // All stops in collapsible dropdown
+                 html += `<div class="stops-dropdown" id="${stopsId}">`;
+                 leg.intermediateStops.forEach((stop, stopIndex) => {
+                   html += `<div class="stop-item">`;
+                   html += `<div class="stop-bullet">•</div>`;
+                   html += `<div class="stop-details">`;
+                   html += `<span class="stop-name">${stop.name}</span>`;
+                   
+                   // Note: Time information not available for intermediate stops
+                   // Only showing stop names as provided by the API
+                   
+                   html += `</div>`;
+                   html += `</div>`;
+                 });
+                 html += `</div>`;
+                 html += `</div>`;
+               }
+               
+               const duration = Math.round((new Date(leg.endTime) - new Date(leg.startTime)) / 60000);
+               html += `<div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${duration} perc</div>`;
+               html += `</div>`;
+             }
+            
+            html += `</div>`;
+          }
+          
+          // End station
+          if (legIndex === itinerary.legs.length - 1) {
+            html += `<div class="timeline-item">`;
+            html += `<div class="station-marker end"></div>`;
+            html += `<div class="station-info">`;
+            html += `<div class="station-time">${legEndTime}</div>`;
+            html += `<div class="station-name">${leg.to.name || 'Célpont'}</div>`;
+            
+            // Add platform information if available
+            if (leg.to.platformCode) {
+              html += `<div class="platform-info">Vágány: ${leg.to.platformCode}</div>`;
+            }
+            
+            // Add final arrival information if available
+            if (legIndex === itinerary.legs.length - 1 && leg.realTime && leg.realTime.arrival) {
+              const finalArrival = new Date(leg.realTime.arrival).toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' });
+              html += `<div class="final-arrival-info" style="font-size: 11px; color: var(--success-color); font-weight: 600; margin-top: 4px;">Várható érkezés: ${finalArrival}</div>`;
+            }
+            
+            html += `</div>`;
+            html += `</div>`;
+          }
+        });
+        
+        html += `</div>`; // Close trip-timeline
+        
+        // Add mobile map button
+        html += `<div class="mobile-map-button-container">`;
+        html += `<button class="mobile-map-button" onclick="showMapOnMobile(${index})">`;
+        html += `🗺️ Megnyitás térképen`;
+        html += `</button>`;
+        html += `</div>`;
+        
+        html += `</div>`; // Close trip-details
+        
+        html += `</div>`;
+      });
+      
+      resultsDiv.innerHTML = html;
+      
+      // Add click event listeners to make trips expandable and show routes
+      document.querySelectorAll('.trip-result').forEach((tripResult, index) => {
+        tripResult.addEventListener('click', function() {
+          const details = document.getElementById(`details-${index}`);
+          const isExpanded = details.classList.contains('expanded');
+          
+          // Clear all existing route visualizations
+          clearRouteVisualization();
+          
+          // Remove expanded class from all trip results
+          document.querySelectorAll('.trip-result').forEach(tr => tr.classList.remove('expanded'));
+          document.querySelectorAll('.trip-details').forEach(td => td.classList.remove('expanded'));
+          
+          if (!isExpanded) {
+            details.classList.add('expanded');
+            tripResult.classList.add('expanded');
+            
+            // Hide form section and show back button
+            const formSection = document.querySelector('.form-section');
+            const resultsSection = document.querySelector('.results-section');
+            const backButton = document.querySelector('.itinerary-back-button');
+            const mapBackButton = document.querySelector('.back-button');
+            
+            formSection.classList.add('hidden');
+            resultsSection.classList.add('expanded');
+            backButton.classList.add('show');
+            mapBackButton.style.display = 'none';
+            
+            // Show route on map
+            if (currentPlan && currentPlan.itineraries[index]) {
+              showRouteOnMap(currentPlan.itineraries[index]);
+            }
+          }
+        });
+      });
+    }
+    
+    function getModeText(mode) {
+      const modeTexts = {
+        'RAIL': 'Vonat',
+        'BUS': 'Busz',
+        'COACH': 'Távolsági',
+        'TRAM': 'Villamos',
+        'SUBWAY': 'Metró',
+        'WALK': 'Gyalog'
+      };
+      return modeTexts[mode] || mode;
+    }
+    
+    function showRouteOnMap(itinerary) {
+      if (!itinerary || !itinerary.legs) {
+        console.log('No itinerary or legs found');
+        return;
+      }
+      
+      console.log('Showing route for itinerary:', itinerary);
+      const routeGroup = L.layerGroup();
+      let hasValidRoute = false;
+      
+      itinerary.legs.forEach((leg, legIndex) => {
+        console.log(`Processing leg ${legIndex}:`, leg);
+        
+        let coordinates = [];
+        
+        // Try to get coordinates from different possible sources
+        if (leg.legGeometry && leg.legGeometry.points) {
+          // Decode polyline if available
+          coordinates = decodePolyline(leg.legGeometry.points);
+          console.log(`Decoded ${coordinates.length} coordinates from polyline`);
+        } else if (leg.from && leg.to && leg.from.lat && leg.from.lon && leg.to.lat && leg.to.lon) {
+          // Fallback: create simple straight line between start and end points
+          coordinates = [[leg.from.lat, leg.from.lon], [leg.to.lat, leg.to.lon]];
+          console.log('Using fallback straight line coordinates');
+        } else {
+          console.log('No geometry data available for leg', legIndex);
+          return;
+        }
+        
+        if (coordinates.length < 2) {
+          console.log('Not enough coordinates for leg', legIndex);
+          return;
+        }
+        
+        hasValidRoute = true;
+        
+        // Get color based on transport mode
+        const color = getModeColor(leg.mode);
+        const weight = leg.mode === 'WALK' ? 3 : 5;
+        const opacity = leg.mode === 'WALK' ? 0.7 : 0.8;
+        const dashArray = leg.mode === 'WALK' ? '5, 5' : null;
+        
+        // Create polyline for this leg
+        const polyline = L.polyline(coordinates, {
+          color: color,
+          weight: weight,
+          opacity: opacity,
+          dashArray: dashArray
+        });
+        
+        // Add popup with leg information
+        const legStartTime = new Date(leg.startTime).toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' });
+        const legEndTime = new Date(leg.endTime).toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' });
+        const modeText = getModeText(leg.mode);
+        
+        let popupContent = `<div style="font-size: 12px; line-height: 1.4;">`;
+        popupContent += `<strong>${modeText}</strong><br>`;
+        popupContent += `${legStartTime} - ${legEndTime}<br>`;
+        popupContent += `${leg.from.name} → ${leg.to.name}`;
+        
+        if (leg.route && leg.route.shortName || (leg.mode === 'RAIL' && leg.trip && leg.trip.tripShortName)) {
+          let routeName;
+          if (leg.mode === 'RAIL' && leg.trip && leg.trip.tripShortName) {
+            routeName = leg.trip.tripShortName;
+          } else if (leg.route && leg.route.shortName) {
+            routeName = leg.route.shortName;
+          }
+          
+          if (routeName) {
+            popupContent += `<br><em>${routeName}</em>`;
+          }
+        }
+        
+        popupContent += `</div>`;
+        polyline.bindPopup(popupContent);
+        
+        routeGroup.addLayer(polyline);
+        
+        // Add start and end markers for each leg
+        const startMarker = L.circleMarker([coordinates[0][0], coordinates[0][1]], {
+          radius: 4,
+          fillColor: color,
+          color: 'white',
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.8
+        });
+        startMarker.bindPopup(`<div style="font-size: 11px;"><strong>Start:</strong> ${leg.from.name}</div>`);
+        routeGroup.addLayer(startMarker);
+        
+        const endMarker = L.circleMarker([coordinates[coordinates.length-1][0], coordinates[coordinates.length-1][1]], {
+          radius: 4,
+          fillColor: color,
+          color: 'white',
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.8
+        });
+        endMarker.bindPopup(`<div style="font-size: 11px;"><strong>End:</strong> ${leg.to.name}</div>`);
+        routeGroup.addLayer(endMarker);
+        
+        // Add intermediate stop markers for transit legs
+        if (leg.mode !== 'WALK' && leg.intermediateStops && leg.intermediateStops.length > 0) {
+          leg.intermediateStops.forEach(stop => {
+            if (stop.lat && stop.lon) {
+              const stopMarker = L.circleMarker([stop.lat, stop.lon], {
+                radius: 3,
+                fillColor: color,
+                color: 'white',
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0.8
+              });
+              
+              stopMarker.bindPopup(`<div style="font-size: 11px;">${stop.name}</div>`);
+              routeGroup.addLayer(stopMarker);
+            }
+          });
+        }
+      });
+      
+      if (hasValidRoute) {
+        routeGroup.addTo(map);
+        routeLayers.push(routeGroup);
+        console.log('Route added to map with', routeGroup.getLayers().length, 'layers');
+        
+        // Fit map to show the entire route
+        if (routeGroup.getLayers().length > 0) {
+          const group = new L.featureGroup(routeGroup.getLayers());
+          map.fitBounds(group.getBounds().pad(0.1));
+        }
+      } else {
+        console.log('No valid route data found to display');
+      }
+    }
+    
+    function clearRouteVisualization() {
+      routeLayers.forEach(layer => {
+        map.removeLayer(layer);
+      });
+      routeLayers = [];
+    }
+    
+    function getModeColor(mode) {
+      const colors = {
+        'RAIL': '#2563eb',     // Blue
+        'BUS': '#338dff',      // Light blue
+        'COACH': '#f59e0b',    // Orange
+        'TRAM': '#f1e320',     // Yellow
+        'SUBWAY': '#ef4444',   // Red
+        'WALK': '#6b7280'      // Gray
+      };
+      return colors[mode] || '#64748b';
+    }
+    
+    function getModeIcon(mode) {
+       const icons = {
+         'RAIL': '🚆',
+         'BUS': '🚌',
+         'COACH': '🚌',
+         'TRAM': '🚋',
+         'SUBWAY': '🚇',
+         'WALK': '🚶'
+       };
+       return icons[mode] || '🚌';
+     }
+
+     function getModeGradient(mode) {
+       const colors = {
+         'RAIL': 'linear-gradient(135deg, var(--primary-color), #1d4ed8)',
+         'BUS': 'linear-gradient(135deg, #338dff, #2563eb)',
+         'COACH': 'linear-gradient(135deg, var(--warning-color), #d97706)',
+         'TRAM': 'linear-gradient(135deg, #f1e320, #eab308)',
+         'SUBWAY': 'linear-gradient(135deg, #ef4444, #dc2626)',
+         'WALK': 'linear-gradient(135deg, #6b7280, #4b5563)'
+       };
+       return colors[mode] || 'linear-gradient(135deg, var(--primary-color), #1d4ed8)';
+     }
+    
+    function decodePolyline(encoded) {
+      // Simple polyline decoder for Google's polyline algorithm
+      if (!encoded || typeof encoded !== 'string') {
+        console.log('Invalid polyline string:', encoded);
+        return [];
+      }
+      
+      try {
+        let index = 0;
+        const len = encoded.length;
+        let lat = 0;
+        let lng = 0;
+        const coordinates = [];
+        
+        while (index < len) {
+          let b, shift = 0, result = 0;
+          do {
+            if (index >= len) break;
+            b = encoded.charCodeAt(index++) - 63;
+            result |= (b & 0x1f) << shift;
+            shift += 5;
+          } while (b >= 0x20 && index < len);
+          const dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+          lat += dlat;
+          
+          shift = 0;
+          result = 0;
+          do {
+            if (index >= len) break;
+            b = encoded.charCodeAt(index++) - 63;
+            result |= (b & 0x1f) << shift;
+            shift += 5;
+          } while (b >= 0x20 && index < len);
+          const dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+          lng += dlng;
+          
+          const decodedLat = lat / 1e5;
+          const decodedLng = lng / 1e5;
+          
+          // Validate coordinates
+          if (isFinite(decodedLat) && isFinite(decodedLng) && 
+              Math.abs(decodedLat) <= 90 && Math.abs(decodedLng) <= 180) {
+            coordinates.push([decodedLat, decodedLng]);
+          }
+        }
+        
+        console.log(`Successfully decoded ${coordinates.length} coordinates`);
+        return coordinates;
+      } catch (error) {
+        console.error('Error decoding polyline:', error);
+        return [];
+      }
+    }
+    
+    // Station autocomplete functionality
+    let searchTimeout = null;
+    
+    function setupAutocomplete() {
+      const fromInput = document.getElementById('from-input');
+      const toInput = document.getElementById('to-input');
+      
+      fromInput.addEventListener('input', (e) => handleStationSearch(e, 'from'));
+      toInput.addEventListener('input', (e) => handleStationSearch(e, 'to'));
+      
+      // Hide suggestions when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.autocomplete-container')) {
+          hideSuggestions('from');
+          hideSuggestions('to');
+        }
+      });
+    }
+    
+    function handleStationSearch(event, type) {
+      const query = event.target.value.trim();
+      
+      if (query.length < 2) {
+        hideSuggestions(type);
+        return;
+      }
+      
+      // Clear previous timeout
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+      
+      // Debounce search requests
+      searchTimeout = setTimeout(() => {
+        searchStations(query, type);
+      }, 300);
+    }
+    
+    async function searchStations(query, type) {
+       try {
+         const response = await fetch(`/api/stations?q=${encodeURIComponent(query)}&limit=10`);
+         
+         if (!response.ok) {
+           throw new Error(`HTTP error! status: ${response.status}`);
+         }
+         
+         const stations = await response.json();
+         displaySuggestions(stations, type);
+         
+       } catch (error) {
+         console.error('Error searching stations:', error);
+         hideSuggestions(type);
+       }
+     }
+    
+    function displaySuggestions(data, type) {
+       const suggestionsDiv = document.getElementById(`${type}-suggestions`);
+       
+       console.log('API response data:', data);
+       
+       // Handle different response formats
+       let stations = [];
+       if (Array.isArray(data)) {
+         stations = data;
+       } else if (data && Array.isArray(data.features)) {
+         stations = data.features;
+       } else if (data && Array.isArray(data.stations)) {
+         stations = data.stations;
+       } else if (data && Array.isArray(data.results)) {
+         stations = data.results;
+       } else {
+         console.error('Unexpected API response format:', data);
+         hideSuggestions(type);
+         return;
+       }
+       
+       if (!stations || stations.length === 0) {
+         hideSuggestions(type);
+         return;
+       }
+       
+       let html = '';
+       stations.forEach(station => {
+         // Handle different station object formats
+         const name = station.name || station.label || station.properties?.name || station.properties?.label || 'Névtelen állomás';
+         
+         // Handle modes and convert to icons
+         const modes = station.modes || station.properties?.modes;
+         let modeIcons = '';
+         if (modes && modes.length > 0) {
+           modeIcons = modes.map(mode => {
+             const modeIcon = getModeIcon(mode);
+             return `<span class="mode-icon" title="${mode}">${modeIcon}</span>`;
+           }).join(' ');
+         }
+         
+         // Handle coordinates - try different formats
+         let lat = 0, lon = 0;
+         if (station.coordinate) {
+           lat = station.coordinate.lat;
+           lon = station.coordinate.lon;
+         } else if (station.geometry && station.geometry.coordinates) {
+           // GeoJSON format [lon, lat]
+           lon = station.geometry.coordinates[0];
+           lat = station.geometry.coordinates[1];
+         } else if (station.lat && station.lon) {
+           lat = station.lat;
+           lon = station.lon;
+         } else if (station.properties && station.properties.coordinate) {
+           lat = station.properties.coordinate.lat;
+           lon = station.properties.coordinate.lon;
+         }
+         
+         html += `
+           <div class="suggestion-item" onclick="selectStation('${type}', '${name.replace(/'/g, "\\'").replace(/"/g, '\\"')}', ${lat}, ${lon})">
+             <div class="suggestion-name">${name}</div>
+             ${modeIcons ? `<div class="suggestion-modes">${modeIcons}</div>` : ''}
+           </div>
+         `;
+       });
+       
+       suggestionsDiv.innerHTML = html;
+       suggestionsDiv.style.display = 'block';
+     }
+    
+    function selectStation(type, name, lat, lon) {
+      const input = document.getElementById(`${type}-input`);
+      const latInput = document.getElementById(`${type}-lat`);
+      const lonInput = document.getElementById(`${type}-lon`);
+      const coordsDiv = document.getElementById(`${type}-coords`);
+      
+      input.value = name;
+      latInput.value = lat;
+      lonInput.value = lon;
+      coordsDiv.textContent = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+      
+      hideSuggestions(type);
+      
+      // Add marker to map
+      if (lat && lon) {
+        addMarker(lat, lon, type);
+      }
+    }
+    
+    function hideSuggestions(type) {
+      const suggestionsDiv = document.getElementById(`${type}-suggestions`);
+      suggestionsDiv.style.display = 'none';
+      suggestionsDiv.innerHTML = '';
+    }
+    
+    // Initialize autocomplete when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      setupAutocomplete();
+      
+      // Set default date and time
+      const now = new Date();
+      const dateInput = document.getElementById('trip-date');
+      const timeInput = document.getElementById('trip-time');
+      const hourSelect = document.getElementById('trip-hour');
+      const minuteSelect = document.getElementById('trip-minute');
+      
+      // Populate hour dropdown (00-23)
+      for (let i = 0; i < 24; i++) {
+        const option = document.createElement('option');
+        option.value = i.toString().padStart(2, '0');
+        option.textContent = i.toString().padStart(2, '0');
+        hourSelect.appendChild(option);
+      }
+      
+      // Populate minute dropdown (00, 15, 30, 45)
+      for (let i = 0; i < 60; i += 15) {
+        const option = document.createElement('option');
+        option.value = i.toString().padStart(2, '0');
+        option.textContent = i.toString().padStart(2, '0');
+        minuteSelect.appendChild(option);
+      }
+      
+      // Function to update hidden time input
+      function updateTimeInput() {
+        const hour = hourSelect.value;
+        const minute = minuteSelect.value;
+        timeInput.value = `${hour}:${minute}`;
+      }
+      
+      // Add event listeners to update hidden input
+      hourSelect.addEventListener('change', updateTimeInput);
+      minuteSelect.addEventListener('change', updateTimeInput);
+      
+      // Set today's date
+      dateInput.value = now.toISOString().split('T')[0];
+      
+      // Set current time rounded to next 15 minutes
+      const minutes = now.getMinutes();
+      const roundedMinutes = Math.ceil(minutes / 15) * 15;
+      now.setMinutes(roundedMinutes, 0, 0);
+      
+      const hours = now.getHours().toString().padStart(2, '0');
+      const mins = now.getMinutes().toString().padStart(2, '0');
+      
+      // Set the dropdown values
+      hourSelect.value = hours;
+      minuteSelect.value = mins;
+      
+      // Update the hidden input
+       updateTimeInput();
+    });
+
+    function clearTrip() {
+      // Clear inputs
+      document.getElementById('from-input').value = '';
+      document.getElementById('from-lat').value = '';
+      document.getElementById('from-lon').value = '';
+      document.getElementById('to-input').value = '';
+      document.getElementById('to-lat').value = '';
+      document.getElementById('to-lon').value = '';
+      document.getElementById('from-coords').textContent = '';
+      document.getElementById('to-coords').textContent = '';
+      document.getElementById('num-itineraries').value = '3';
+      
+      // Reset date and time to defaults
+      const now = new Date();
+      document.getElementById('trip-date').value = now.toISOString().split('T')[0];
+      
+      const minutes = now.getMinutes();
+      const roundedMinutes = Math.ceil(minutes / 15) * 15;
+      now.setMinutes(roundedMinutes, 0, 0);
+      
+      const hours = now.getHours().toString().padStart(2, '0');
+      const mins = now.getMinutes().toString().padStart(2, '0');
+      
+      // Reset dropdown values
+      document.getElementById('trip-hour').value = hours;
+      document.getElementById('trip-minute').value = mins;
+      
+      // Update hidden time input
+       document.getElementById('trip-time').value = `${hours}:${mins}`;
+      
+      // Reset to departure time
+      document.querySelector('input[name="time-type"][value="departure"]').checked = true;
+      
+      // Clear suggestions
+      hideSuggestions('from');
+      hideSuggestions('to');
+      
+      // Clear results
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.style.display = 'none';
+      resultsDiv.innerHTML = '';
+      
+      // Remove markers
+      tripMarkers.forEach(marker => map.removeLayer(marker));
+      tripMarkers = [];
+      
+      // Remove routes
+      clearRouteVisualization();
+      currentPlan = null;
+    }
+    
+    function toggleStopsDropdown(stopsId, event) {
+      event.stopPropagation();
+      
+      const dropdown = document.getElementById(stopsId);
+      const toggle = dropdown.previousElementSibling;
+      const arrow = toggle.querySelector('.dropdown-arrow');
+      
+      if (dropdown.classList.contains('expanded')) {
+        dropdown.classList.remove('expanded');
+        arrow.textContent = '▼';
+      } else {
+        dropdown.classList.add('expanded');
+        arrow.textContent = '▲';
+      }
+    }
+
+    function closeItinerary() {
+      // Remove expanded class from all trip results and details
+      document.querySelectorAll('.trip-result').forEach(tr => tr.classList.remove('expanded'));
+      document.querySelectorAll('.trip-details').forEach(td => td.classList.remove('expanded'));
+      
+      // Show form section and hide back button
+      const formSection = document.querySelector('.form-section');
+      const resultsSection = document.querySelector('.results-section');
+      const backButton = document.querySelector('.itinerary-back-button');
+      const mapBackButton = document.querySelector('.back-button');
+      const mapContainer = document.querySelector('.map-container');
+      
+      formSection.classList.remove('hidden');
+      resultsSection.classList.remove('expanded');
+      backButton.classList.remove('show');
+      mapBackButton.style.display = 'inline-flex';
+      
+      // Hide mobile map if it was shown
+      if (mapContainer.classList.contains('mobile-map-visible')) {
+        mapContainer.classList.remove('mobile-map-visible');
+        const closeButton = document.querySelector('.mobile-map-close');
+        closeButton.style.display = 'none';
+      }
+      
+      // Clear route visualization
+      clearRouteVisualization();
+    }
+
+    function showMapOnMobile(itineraryIndex) {
+      const mapContainer = document.querySelector('.map-container');
+      const closeButton = document.querySelector('.mobile-map-close');
+      
+      // Show the map on mobile
+      mapContainer.classList.add('mobile-map-visible');
+      closeButton.style.display = 'flex';
+      
+      // Invalidate map size first to ensure proper rendering
+      setTimeout(() => {
+        map.invalidateSize();
+        
+        // Show the route for the selected itinerary after map is properly sized
+        if (currentPlan && currentPlan.itineraries[itineraryIndex]) {
+          const itinerary = currentPlan.itineraries[itineraryIndex];
+          showRouteOnMap(itinerary);
+          
+          // Zoom to fit the route bounds
+          if (itinerary.legs && itinerary.legs.length > 0) {
+            const bounds = L.latLngBounds();
+            
+            itinerary.legs.forEach(leg => {
+              if (leg.from && leg.from.lat && leg.from.lon) {
+                bounds.extend([leg.from.lat, leg.from.lon]);
+              }
+              if (leg.to && leg.to.lat && leg.to.lon) {
+                bounds.extend([leg.to.lat, leg.to.lon]);
+              }
+            });
+            
+            if (bounds.isValid()) {
+              map.fitBounds(bounds, { padding: [20, 20] });
+            }
+          }
+        }
+      }, 200);
+    }
+
+    function closeMobileMap() {
+      const mapContainer = document.querySelector('.map-container');
+      const closeButton = document.querySelector('.mobile-map-close');
+      
+      // Hide the mobile map
+      mapContainer.classList.remove('mobile-map-visible');
+      closeButton.style.display = 'none';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <title>HovaMegy?</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #2563eb;
+      --secondary-color: #64748b;
+      --success-color: #10b981;
+      --warning-color: #f59e0b;
+      --error-color: #ef4444;
+      --background-white: #ffffff;
+      --background-gray: #f8fafc;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --border-color: #e2e8f0;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      --border-radius: 12px;
+      --border-radius-sm: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--background-gray);
+      overflow: hidden;
+    }
+
+    #map {
+      height: 100vh;
+      width: 100vw;
+      position: relative;
+    }
+
+    /* Timestamp */
+    #timestamp {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(226, 232, 240, 0.5);
+      border-radius: var(--border-radius-sm);
+      box-shadow: var(--shadow-md);
+      padding: 8px 12px;
+      font-size: 11px;
+      color: white;
+      z-index: 1000;
+      font-weight: 500;
+    }
+
+    /* Legend */
+    .legend {
+      background: var(--background-white);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-lg);
+      padding: 16px;
+      color: var(--text-primary);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .legend-title {
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .legend-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .legend i {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 10px;
+      border: 1px solid rgba(0,0,0,0.1);
+      flex-shrink: 0;
+    }
+
+    /* Custom markers */
+    .marker-container {
+      position: relative;
+      width: 32px;
+      height: 32px;
+    }
+
+    .triangle-wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 32px;
+      height: 32px;
+      transform-origin: center center;
+      z-index: 0;
+    }
+
+    .triangle {
+      position: absolute;
+      top: -6px;
+      left: 6px;
+      width: 0;
+      height: 0;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-bottom: 16px solid var(--text-primary);
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+    }
+
+    .circle {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 24px;
+      height: 24px;
+      background: var(--color);
+      border: 2px solid var(--background-white);
+      border-radius: 50%;
+      box-shadow: var(--shadow-md);
+      z-index: 1;
+    }
+
+    /* Cluster marker styling */
+    .marker-cluster {
+      background-clip: padding-box;
+      border-radius: 20px;
+    }
+    
+    .marker-cluster div {
+      width: 30px;
+      height: 30px;
+      margin-left: 5px;
+      margin-top: 5px;
+      text-align: center;
+      border-radius: 15px;
+      font: 12px "Helvetica Neue", Arial, Helvetica, sans-serif;
+      font-weight: bold;
+    }
+    
+    .marker-cluster-small {
+      background-color: rgba(181, 226, 140, 0.6);
+    }
+    
+    .marker-cluster-small div {
+      background-color: rgba(110, 204, 57, 0.6);
+    }
+    
+    .marker-cluster-medium {
+      background-color: rgba(241, 211, 87, 0.6);
+    }
+    
+    .marker-cluster-medium div {
+      background-color: rgba(240, 194, 12, 0.6);
+    }
+    
+    .marker-cluster-large {
+      background-color: rgba(253, 156, 115, 0.6);
+    }
+    
+    .marker-cluster-large div {
+      background-color: rgba(241, 128, 23, 0.6);
+    }
+
+    /* Route styling */
+    .route-number {
+      padding: 4px 8px;
+      border-radius: 6px;
+      color: white;
+      font-weight: 600;
+      font-size: 12px;
+      display: inline-block;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .route-rail, .route-tramtrain {
+      background: linear-gradient(135deg, #1e40af, #3b82f6);
+    }
+
+    .route-coach, .route-bus {
+      background: linear-gradient(135deg, #ea580c, #f97316);
+    }
+
+    .route-hev {
+      background: linear-gradient(135deg, #0c833c, #13ce5e);
+    }
+
+
+    /* Popup styling */
+    .leaflet-popup-content-wrapper {
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+    }
+
+    .leaflet-popup-content {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .popup-header {
+      background: var(--background-gray);
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .popup-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0 0 4px 0;
+    }
+
+    .popup-subtitle {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin: 0 0 8px 0;
+    }
+
+    .popup-stats {
+      display: flex;
+      gap: 16px;
+      font-size: 12px;
+    }
+
+    .popup-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .popup-stat-value {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .popup-stat-label {
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .popup-table-container {
+      max-height: 280px;
+      overflow-y: auto;
+      background: var(--background-white);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    th {
+      background: var(--background-gray);
+      padding: 12px 8px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--text-primary);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: top;
+    }
+
+    .passed {
+      background-color: #dcfce7;
+      color: var(--text-secondary);
+      opacity: 0.8;
+    }
+
+    .next-station {
+      background-color: #dbeafe;
+      border-left: 4px solid var(--primary-color);
+      font-weight: 600;
+    }
+
+    .delayed {
+      color: var(--error-color);
+      font-weight: 500;
+    }
+
+    .station-name {
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .time-cell {
+      text-align: center;
+      min-width: 50px;
+    }
+
+    .scheduled-time {
+      color: var(--text-secondary);
+      font-size: 11px;
+    }
+
+    .actual-time {
+      font-weight: 500;
+    }
+
+    /* Tooltip styling */
+    .leaflet-tooltip {
+      background: var(--text-primary);
+      border: none;
+      border-radius: var(--border-radius-sm);
+      box-shadow: var(--shadow-lg);
+      color: white;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 8px 12px;
+    }
+
+    .leaflet-tooltip-top:before {
+      border-top-color: var(--text-primary);
+    }
+
+    /* Mobile optimizations */
+    @media (max-width: 768px) {
+      .top-controls {
+        top: 12px;
+        left: 12px;
+        flex-direction: column;
+      }
+
+      #info-button, #filter-button {
+        font-size: 10px;
+        padding: 6px 10px;
+      }
+
+      .filter-panel {
+        top: 80px;
+        left: 12px;
+        right: 12px;
+        min-width: auto;
+        max-width: calc(100vw - 24px);
+      }
+
+      #timestamp {
+        top: 12px;
+        right: 12px;
+        font-size: 10px;
+        padding: 6px 10px;
+      }
+
+      .legend {
+        font-size: 12px;
+        padding: 12px;
+      }
+
+      .popup-table-container {
+        max-height: 150px;
+      }
+
+      .popup-header {
+        padding: 8px 12px;
+      }
+
+      .popup-title {
+        font-size: 13px;
+        margin: 0 0 2px 0;
+      }
+
+      .popup-subtitle {
+        font-size: 11px;
+        margin: 0 0 6px 0;
+      }
+
+      .popup-stats {
+        gap: 12px;
+        font-size: 11px;
+      }
+
+      .popup-stat-value {
+        font-size: 12px;
+      }
+
+      .popup-stat-label {
+        font-size: 10px;
+      }
+
+      th, td {
+        padding: 6px 4px;
+        font-size: 10px;
+      }
+
+      th {
+        padding: 8px 4px;
+      }
+
+      .leaflet-popup-content-wrapper {
+        border-radius: 8px;
+      }
+
+      .popup-table-container table {
+        font-size: 10px;
+      }
+
+      .scheduled-time {
+        font-size: 9px;
+      }
+    }
+
+    /* Loading animation */
+    .loading-spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-spinner.hidden {
+      display: none;
+    }
+
+    /* Info button and filter controls */
+    .top-controls {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      display: flex;
+      gap: 8px;
+      z-index: 1000;
+      align-items: flex-start;
+    }
+
+    #info-button {
+      background: rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(226, 232, 240, 0.5);
+      border-radius: var(--border-radius-sm);
+      box-shadow: var(--shadow-md);
+      padding: 8px 12px;
+      font-size: 11px;
+      color: white;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    #info-button:hover {
+      background: rgba(255, 255, 255, 0.5);
+      box-shadow: var(--shadow-lg);
+    }
+
+    #filter-button {
+      background: rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(226, 232, 240, 0.5);
+      border-radius: var(--border-radius-sm);
+      box-shadow: var(--shadow-md);
+      padding: 8px 12px;
+      font-size: 11px;
+      color: white;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    #filter-button:hover {
+      background: rgba(255, 255, 255, 0.5);
+      box-shadow: var(--shadow-lg);
+    }
+
+    #filter-button.active {
+      background: rgba(37, 99, 235, 0.8);
+      color: white;
+    }
+
+    #trip-button:hover {
+      background: rgba(255, 255, 255, 0.5);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .filter-panel {
+      position: fixed;
+      top: 60px;
+      left: 16px;
+      background: var(--background-white);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-lg);
+      padding: 16px;
+      min-width: 280px;
+      z-index: 1001;
+      display: none;
+    }
+
+    .filter-panel.show {
+      display: block;
+    }
+
+    .filter-group {
+      margin-bottom: 16px;
+    }
+
+    .filter-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .filter-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+
+    .filter-select, .filter-input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-sm);
+      font-size: 12px;
+      background: var(--background-white);
+      color: var(--text-primary);
+    }
+
+    .filter-select:focus, .filter-input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+    }
+
+    .filter-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .filter-btn {
+      flex: 1;
+      padding: 8px 12px;
+      border: none;
+      border-radius: var(--border-radius-sm);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .filter-btn-primary {
+      background: var(--primary-color);
+      color: white;
+    }
+
+    .filter-btn-primary:hover {
+      background: #1d4ed8;
+    }
+
+    .filter-btn-secondary {
+      background: var(--background-gray);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-color);
+    }
+
+    .filter-btn-secondary:hover {
+      background: #e2e8f0;
+    }
+
+    .active-filters {
+      font-size: 10px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+    }
+
+    /* Alert styling */
+    .alert {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--background-white);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-lg);
+      padding: 24px;
+      max-width: 90vw;
+      max-height: 80vh;
+      overflow-y: auto;
+      z-index: 10000;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .alert-title {
+      font-weight: 600;
+      color: var(--error-color);
+      margin-bottom: 12px;
+      font-size: 16px;
+    }
+
+    .alert-content {
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+
+    .alert-button {
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: var(--border-radius-sm);
+      padding: 10px 20px;
+      font-weight: 500;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .alert-button:hover {
+      background: #1d4ed8;
+    }
+
+    /* Scrollbar styling */
+    .popup-table-container::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .popup-table-container::-webkit-scrollbar-track {
+      background: var(--background-gray);
+    }
+
+    .popup-table-container::-webkit-scrollbar-thumb {
+      background: var(--text-secondary);
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="timestamp">Frissítés...<span id="loading-spinner" class="loading-spinner hidden"></span></div>
+  <div class="top-controls">
+    <div id="info-button" onclick="showInfoPopup()">ℹ️</div>
+    <div id="filter-button" onclick="toggleFilterPanel()">🔍</div>
+    <a href="/trip" id="trip-button" style="background: rgba(255, 255, 255, 0.3); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(226, 232, 240, 0.5); border-radius: var(--border-radius-sm); box-shadow: var(--shadow-md); padding: 8px 12px; font-size: 11px; color: white; font-weight: 500; cursor: pointer; transition: all 0.2s ease; display: inline-block;">🗺️</a>
+  </div>
+  
+  <div id="filter-panel" class="filter-panel">
+    <div class="filter-group">
+      <label class="filter-label">Közlekedési mód</label>
+      <select id="mode-filter" class="filter-select">
+        <option value="">Összes</option>
+        <option value="RAIL">Vonat</option>
+        <option value="COACH">Busz</option>
+        <option value="SUBURBAN_RAILWAY">HÉV</option>
+        <option value="TRAMTRAIN">TramTrain</option>
+      </select>
+    </div>
+    
+    <div class="filter-group">
+      <label class="filter-label">Járatszám</label>
+      <input type="text" id="route-filter" class="filter-input" placeholder="1253">
+    </div>
+    
+    <div class="filter-group">
+      <label class="filter-label">Úticél</label>
+      <input type="text" id="destination-filter" class="filter-input" placeholder="Budapest">
+    </div>
+    
+    <div class="filter-group">
+      <label class="filter-label">Státusz</label>
+      <select id="status-filter" class="filter-select">
+        <option value="">Összes</option>
+        <option value="ontime">Pontos (0-5 perc)</option>
+        <option value="slight">Kis késés (5-15 perc)</option>
+        <option value="moderate">Közepes késés (15-60 perc)</option>
+        <option value="severe">Nagy késés (60+ perc)</option>
+      </select>
+    </div>
+    
+    <div class="filter-actions">
+      <button class="filter-btn filter-btn-primary" onclick="applyFilters()">Szűrés</button>
+      <button class="filter-btn filter-btn-secondary" onclick="clearFilters()">Törlés</button>
+    </div>
+    
+    <div id="active-filters" class="active-filters"></div>
+  </div>
+  
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+  <script>
+
+    showAlert("Hiányos/hibás adatok!",`A MÁV Csoport a súlyos vihart követő napokban részben lezárta az EMMA API-t. Az adatok így csak részleges, esetenként hibásan érhetőek csak el.
+    <br><b>Ismert hibák:</b>
+    <ul>
+      <li>Néhány jármű számára nem elérhető a részletes menetrend</li>
+      <li>Néhány jármű nem jelenik meg a térképen</li>
+      <li>Az útvonaltervezés funkció nem elérhető</li>
+      <li>Fokozottan késleltetett frissítések</li>
+      </ul>
+      
+      Amennyiben ezen kívüli hibát vélsz felfedezni jelezd a <a href="mailto:dev@hovamegy.hu">dev@hovamegy.hu</a> email címen, vagy online a <a href="https://matepazy.hu/error/submit">hibabejelentő oldalamon.</a>
+      <br>
+      A megoldáson dolgozom, de jelenleg az adatok pontosságáért nem vállalok felelősséget. Mindenképpen ellenőrizd a <a href="https://emma.mav.hu">MÁV hivatalos oldalát</a> friss, és pontos információkért.
+    `)
+    const map = L.map('map', {
+      zoomControl: false,
+      attributionControl: false,
+      preferCanvas: true, // Use canvas for better performance
+      minZoom: 7, // Prevent zooming out too far
+      maxZoom: 18
+      // maxBounds: [[45.7, 16.2], [48.6, 22.8]], // Tighter Hungary bounds - DISABLED
+      // maxBoundsViscosity: 1.0 // Stricter boundary enforcement - DISABLED
+    }).setView([47.162494, 19.503304], 8); // Center of Hungary with higher zoom
+
+    // Add zoom control to bottom right
+    L.control.zoom({
+      position: 'bottomright'
+    }).addTo(map);
+
+    const esriSatellite = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      {
+        attribution: 'Tiles © Esri & contributors',
+        maxZoom: 18
+      }
+    );
+
+    const esriLabels = L.tileLayer(
+      'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+      {
+        attribution: 'Labels © Esri',
+        maxZoom: 18,
+        pane: 'overlayPane'
+      }
+    );
+
+    esriSatellite.addTo(map);
+    esriLabels.addTo(map);
+
+    let markers = [];
+    let allVehicles = [];
+    let filteredVehicles = [];
+    let activeFilters = {
+      mode: '',
+      route: '',
+      destination: '',
+      status: ''
+    };
+    let markerClusterGroup = L.markerClusterGroup({
+      maxClusterRadius: 30, // Balanced radius for better individual dot visibility
+      spiderfyOnMaxZoom: true,
+      showCoverageOnHover: false,
+      zoomToBoundsOnClick: true,
+      disableClusteringAtZoom: 8, // Show individual dots at default zoom level
+      iconCreateFunction: function(cluster) {
+        const count = cluster.getChildCount();
+        let size = 'small';
+        if (count > 100) size = 'large';
+        else if (count > 10) size = 'medium';
+        
+        return new L.DivIcon({
+          html: `<div><span>${count}</span></div>`,
+          className: `marker-cluster marker-cluster-${size}`,
+          iconSize: new L.Point(40, 40)
+        });
+      }
+    });
+    map.addLayer(markerClusterGroup);
+    
+    // Performance optimization: only render markers in viewport
+    let visibleMarkers = new Set();
+    let renderTimeout = null;
+    
+    // Track open popup to preserve it during re-rendering
+    let openPopupVehicleId = null;
+    let isPopupOpen = false;
+    
+    // Listen for popup events to track state
+    map.on('popupopen', function(e) {
+      isPopupOpen = true;
+      // Find which vehicle this popup belongs to
+      const popupContent = e.popup.getContent();
+      allVehicles.forEach((v, index) => {
+        if (popupContent.includes(v.name) && popupContent.includes(v.headsgn || '')) {
+          openPopupVehicleId = index;
+        }
+      });
+    });
+    
+    map.on('popupclose', function(e) {
+      isPopupOpen = false;
+      openPopupVehicleId = null;
+    });
+
+    function delayColor(min) {
+      if (min >= 60) return '#ef4444'; // red
+      if (min >= 15) return '#f59e0b'; // orange
+      if (min >= 5) return '#eab308';  // yellow
+      return '#10b981'; // green
+    }
+
+    // Cache for marker icons to improve performance
+    const iconCache = new Map();
+    const MAX_CACHE_SIZE = 100; // Limit cache size to prevent memory issues
+    
+    function createMarkerIcon(color, heading) {
+      const roundedHeading = Math.round(heading / 30) * 30; // Round to nearest 30 degrees for better caching
+      const cacheKey = `${color}-${roundedHeading}`;
+      
+      if (iconCache.has(cacheKey)) {
+        return iconCache.get(cacheKey);
+      }
+      
+      // Clear cache if it gets too large
+      if (iconCache.size >= MAX_CACHE_SIZE) {
+        const firstKey = iconCache.keys().next().value;
+        iconCache.delete(firstKey);
+      }
+      
+      // Use template string for better performance
+      const iconHtml = `
+        <div class="marker-container">
+          <div class="triangle-wrapper" style="transform: rotate(${roundedHeading}deg)">
+            <div class="triangle"></div>
+          </div>
+          <div class="circle" style="--color: ${color}"></div>
+        </div>
+      `;
+
+      const icon = L.divIcon({ 
+        html: iconHtml, 
+        className: '', 
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+      });
+      
+      iconCache.set(cacheKey, icon);
+      return icon;
+    }
+    
+    // Check if a point is within the current map bounds with buffer
+    function isInViewport(lat, lon, buffer = 0.15) {
+      const bounds = map.getBounds();
+      const extendedBounds = bounds.pad(buffer);
+      return extendedBounds.contains([lat, lon]);
+    }
+    
+    // Efficiently render only visible markers with performance optimizations
+    function renderVisibleMarkers() {
+      if (renderTimeout) {
+        clearTimeout(renderTimeout);
+      }
+      
+      renderTimeout = setTimeout(() => {
+        const currentZoom = map.getZoom();
+        const shouldCluster = currentZoom < 8;
+        
+        const now = new Date();
+        const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+        
+        const vehiclesToRender = filteredVehicles.length > 0 ? filteredVehicles : allVehicles;
+        console.log(`Rendering: zoom=${currentZoom}, shouldCluster=${shouldCluster}, vehicles=${vehiclesToRender.length}`);
+        
+        // Always show something when zoomed out
+         if (currentZoom < 8) {
+          // At very low zoom levels, reduce viewport filtering to show more markers
+          const allVisibleVehicles = vehiclesToRender.filter((v, index) => {
+            return isInViewport(v.lat, v.lon, 0.5); // Larger buffer for low zoom
+          });
+          
+          if (allVisibleVehicles.length === 0) {
+            // If no vehicles in viewport, show some anyway
+            const centerLat = map.getCenter().lat;
+            const centerLng = map.getCenter().lng;
+            const nearbyVehicles = vehiclesToRender
+              .map((v, index) => ({ ...v, index, distance: Math.abs(v.lat - centerLat) + Math.abs(v.lon - centerLng) }))
+              .sort((a, b) => a.distance - b.distance)
+              .slice(0, 50); // Show up to 50 nearest vehicles
+            
+            nearbyVehicles.forEach(v => {
+              const marker = L.marker([v.lat, v.lon], {
+                icon: createMarkerIcon('#3b82f6', v.hd || 0)
+              });
+              marker.bindTooltip(`${v.name.replace(/<[^>]*>/g, '')}`, {
+                direction: "top",
+                offset: [0, -10]
+              });
+              markerClusterGroup.addLayer(marker);
+              markers.push(marker);
+            });
+            return;
+          }
+        }
+        
+        // Store popup state before clearing markers
+        let popupToReopen = null;
+        if (isPopupOpen && openPopupVehicleId !== null) {
+          const openPopup = map.getPopup();
+          if (openPopup) {
+            popupToReopen = {
+              vehicleId: openPopupVehicleId,
+              latLng: openPopup.getLatLng()
+            };
+          }
+        }
+        
+        // Clear existing markers
+        markerClusterGroup.clearLayers();
+        markers.forEach(m => m.remove());
+        markers = [];
+        visibleMarkers.clear();
+        
+        // Pre-filter vehicles for better performance - only show vehicles in current viewport
+        const bounds = map.getBounds();
+        const zoom = map.getZoom();
+        let maxVehicles = zoom < 10 ? 200 : 500; // Limit based on zoom level
+        
+        const visibleVehicles = vehiclesToRender
+          .filter((v, index) => bounds.contains([v.lat, v.lon]))
+          .slice(0, maxVehicles); // Limit number of vehicles for performance
+        
+        console.log(`Found ${visibleVehicles.length} visible vehicles out of ${vehiclesToRender.length} total (zoom: ${zoom})`);
+        
+        // Skip rendering if too many vehicles to prevent performance issues
+        if (visibleVehicles.length > 1000) {
+          console.warn(`Too many vehicles to render (${visibleVehicles.length}), skipping render`);
+          return;
+        }
+        
+        visibleVehicles.forEach((v, index) => {
+          
+          const delay = Math.round(getCurrentDelay(v.stops, nowSec) / 60);
+          const delayText = delay >= 1 ? `${delay} perc késés` : 'pontos';
+          const color = delayColor(delay);
+          const heading = v.hd || 0;
+          const speed = Math.round((v.sp || 0) * 3.6);
+          
+          let styledName = v.name;
+          if (v.mode && v.name.includes('[') && v.name.includes(']')) {
+            const routeMatch = v.name.match(/\[([^\]]+)\]/);
+            if (routeMatch) {
+              const routeNumber = routeMatch[1];
+              let modeClass = 'route-coach';
+              if (v.mode === 'RAIL') {
+                modeClass = 'route-rail';
+              } else if (v.mode === 'COACH' || v.mode === 'RAIL_REPLACEMENT_BUS') {
+                modeClass = 'route-coach';
+              } else if (v.mode === 'SUBURBAN_RAILWAY') {
+                modeClass = 'route-hev';
+              } else if (v.mode === 'TRAMTRAIN') {
+                modeClass = 'route-tramtrain';
+              }
+              styledName = v.name.replace(`[${routeNumber}]`, `<span class="route-number ${modeClass}">${routeNumber}</span>`);
+            }
+          }
+
+          const marker = L.marker([v.lat, v.lon], {
+            icon: createMarkerIcon(color, heading)
+          });
+
+          // Lightweight tooltip
+          marker.bindTooltip(`${styledName.replace(/<[^>]*>/g, '')} • ${speed} km/h • ${delayText}`, {
+            direction: "top",
+            offset: [0, -10]
+          });
+
+          // Lazy popup generation for better performance
+          marker.on('click', function() {
+            console.log(`${v.mode}`);
+            if (!this.getPopup()) {
+              let table = '<div class="popup-table-container" id="popup-table-container"><table><thead><tr><th>Állomás</th><th>Érkezés</th><th>Indulás</th><th>Vágány</th></tr></thead><tbody>';
+              let nextStationIndex = -1;
+              
+              // Find the next station (first non-passed station)
+              v.stops.forEach((s, index) => {
+                const isPassed = (s.rd || 0) < nowSec;
+                if (nextStationIndex === -1 && !isPassed) {
+                  nextStationIndex = index;
+                }
+              });
+              
+              v.stops.forEach((s, index) => {
+                const arr = formatTime(s.sa);
+                const rta = formatTime(s.ra);
+                const dep = formatTime(s.sd);
+                const rtd = formatTime(s.rd);
+                let track = s.v || "-";
+                
+                const arrDelay = (s.a || 0) / 60;
+                const depDelay = (s.d || 0) / 60;
+                const isPassed = (s.rd || 0) < nowSec;
+                const isNextStation = index === nextStationIndex;
+                
+                let rowClass = '';
+                if (isPassed) {
+                  rowClass = 'passed';
+                } else if (isNextStation) {
+                  rowClass = 'next-station';
+                }
+
+                table += `<tr class="${rowClass}" ${isNextStation ? 'id="next-station-row"' : ''}>
+                  <td class="station-name">${s.name}</td>
+                  <td class="time-cell">
+                    <div class="scheduled-time">${arr}</div>
+                    <div class="actual-time ${arrDelay > 0 ? 'delayed' : ''}">${rta}</div>
+                  </td>
+                  <td class="time-cell">
+                    <div class="scheduled-time">${dep}</div>
+                    <div class="actual-time ${depDelay > 0 ? 'delayed' : ''}">${rtd}</div>
+                  </td>
+                  <td style="text-align: center;">${track}</td>
+                </tr>`;
+              });
+              table += '</tbody></table></div>';
+
+              this.bindPopup(`
+                <div class="popup-header">
+                  <div class="popup-title">${styledName}</div>
+                  <div class="popup-subtitle">${v.headsgn}</div>
+                  <div class="popup-stats">
+                    <div class="popup-stat">
+                      <div class="popup-stat-value">${speed} km/h</div>
+                    </div>
+                    <div class="popup-stat">
+                      <div class="popup-stat-value" style="color: ${delay >= 1 ? 'var(--error-color)' : 'var(--success-color)'}">${delayText}</div>
+                    </div>
+                  </div>
+                </div>
+                ${table}
+              `, {
+                maxWidth: window.innerWidth < 768 ? 280 : 350,
+                minWidth: window.innerWidth < 768 ? 260 : 300
+              });
+            }
+            this.openPopup();
+            
+            // Auto-scroll to next station after popup opens
+            setTimeout(() => {
+              const nextStationRow = document.getElementById('next-station-row');
+              const tableContainer = document.getElementById('popup-table-container');
+              if (nextStationRow && tableContainer) {
+                const containerRect = tableContainer.getBoundingClientRect();
+                const rowRect = nextStationRow.getBoundingClientRect();
+                const scrollTop = nextStationRow.offsetTop - tableContainer.offsetTop - (containerRect.height / 2) + (rowRect.height / 2);
+                tableContainer.scrollTop = Math.max(0, scrollTop);
+              }
+            }, 100);
+          });
+          
+          if (shouldCluster) {
+            markerClusterGroup.addLayer(marker);
+          } else {
+            marker.addTo(map);
+          }
+          
+          markers.push(marker);
+          visibleMarkers.add(index);
+          
+          // Reopen popup if it was open before re-rendering
+          if (popupToReopen && index === popupToReopen.vehicleId) {
+            setTimeout(() => {
+              marker.openPopup();
+            }, 50); // Small delay to ensure marker is fully rendered
+          }
+        });
+      }, 100); // Optimized debounce for better performance
+    }
+
+    function formatTime(sec) {
+      if (sec == null) return '-';
+      const h = (String(Math.floor(sec / 3600)).padStart(2, '0')) % 24;
+      const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
+      return `${h}:${m}`;
+    }
+
+    function getCurrentDelay(stops, now) {
+      for (const stop of stops) {
+        const arrivalTime = stop.ra;
+        if (arrivalTime > now) {
+          return stop.a || stop.d || 0;
+        }
+      }
+      const lastStop = stops[stops.length - 1];
+      return lastStop ? (lastStop.a || lastStop.d || 0) : 0;
+    }
+
+    function showAlert(title, content) {
+      const alertDiv = document.createElement('div');
+      alertDiv.className = 'alert';
+      alertDiv.innerHTML = `
+        <div class="alert-title">${title}</div>
+        <div class="alert-content">${content}</div>
+        <button class="alert-button" onclick="this.parentElement.remove()">Rendben</button>
+      `;
+      document.body.appendChild(alertDiv);
+    }
+
+    function toggleFilterPanel() {
+      const panel = document.getElementById('filter-panel');
+      const button = document.getElementById('filter-button');
+      
+      if (panel.classList.contains('show')) {
+        panel.classList.remove('show');
+        button.classList.remove('active');
+      } else {
+        panel.classList.add('show');
+        button.classList.add('active');
+      }
+    }
+
+    function applyFilters() {
+      const modeFilter = document.getElementById('mode-filter').value;
+      const routeFilter = document.getElementById('route-filter').value.toLowerCase().trim();
+      const destinationFilter = document.getElementById('destination-filter').value.toLowerCase().trim();
+      const statusFilter = document.getElementById('status-filter').value;
+      
+      activeFilters = {
+        mode: modeFilter,
+        route: routeFilter,
+        destination: destinationFilter,
+        status: statusFilter
+      };
+      
+      filteredVehicles = allVehicles.filter(vehicle => {
+        const now = new Date();
+        const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+        const delay = Math.round(getCurrentDelay(vehicle.stops, nowSec) / 60);
+        
+        // Mode filter - handle Busz/Autóbusz as the same
+        if (modeFilter) {
+          let vehicleMode = vehicle.mode;
+          let filterMode = modeFilter;
+          
+          // Treat BUS and COACH as the same (both are buses)
+          if ((vehicleMode === 'BUS' || vehicleMode === 'COACH') && (filterMode === 'BUS' || filterMode === 'COACH')) {
+            // Match - continue
+          } else if (vehicleMode !== filterMode) {
+            return false;
+          }
+        }
+        
+        // Route filter - search in both name and extracted route number
+        if (routeFilter) {
+          const vehicleName = vehicle.name.toLowerCase();
+          let routeFound = vehicleName.includes(routeFilter);
+          
+          // Also check if route number is in brackets [XXX]
+          if (!routeFound) {
+            const routeMatch = vehicle.name.match(/\[([^\]]+)\]/);
+            if (routeMatch) {
+              const extractedRoute = routeMatch[1].toLowerCase();
+              routeFound = extractedRoute.includes(routeFilter);
+            }
+          }
+          
+          if (!routeFound) {
+            return false;
+          }
+        }
+        
+        // Destination filter - search in both headsgn and stop names
+        if (destinationFilter) {
+          let destinationFound = false;
+          
+          // Check headsign
+          if (vehicle.headsgn && vehicle.headsgn.toLowerCase().includes(destinationFilter)) {
+            destinationFound = true;
+          }
+          
+          // Also check final destination from stops
+          if (!destinationFound && vehicle.stops && vehicle.stops.length > 0) {
+            const finalStop = vehicle.stops[vehicle.stops.length - 1];
+            if (finalStop.name && finalStop.name.toLowerCase().includes(destinationFilter)) {
+              destinationFound = true;
+            }
+          }
+          
+          // Check all stop names for partial matches
+          if (!destinationFound && vehicle.stops) {
+            destinationFound = vehicle.stops.some(stop => 
+              stop.name && stop.name.toLowerCase().includes(destinationFilter)
+            );
+          }
+          
+          if (!destinationFound) {
+            return false;
+          }
+        }
+        
+        // Status filter
+        if (statusFilter) {
+          if (statusFilter === 'ontime' && delay > 5) return false;
+          if (statusFilter === 'slight' && (delay < 5 || delay > 15)) return false;
+          if (statusFilter === 'moderate' && (delay < 15 || delay > 60)) return false;
+          if (statusFilter === 'severe' && delay < 60) return false;
+        }
+        
+        return true;
+      });
+      
+      updateActiveFiltersDisplay();
+      renderVisibleMarkers();
+      toggleFilterPanel();
+    }
+
+    function clearFilters() {
+      document.getElementById('mode-filter').value = '';
+      document.getElementById('route-filter').value = '';
+      document.getElementById('destination-filter').value = '';
+      document.getElementById('status-filter').value = '';
+      
+      activeFilters = {
+        mode: '',
+        route: '',
+        destination: '',
+        status: ''
+      };
+      
+      filteredVehicles = [];
+      updateActiveFiltersDisplay();
+      renderVisibleMarkers();
+    }
+
+    function updateActiveFiltersDisplay() {
+      const activeFiltersDiv = document.getElementById('active-filters');
+      const filterTexts = [];
+      
+      if (activeFilters.mode) {
+        const modeNames = {
+          'RAIL': 'Vonat',
+          'COACH': 'Autóbusz/Busz',
+          'BUS': 'Autóbusz/Busz',
+          'RAIL_REPLACEMENT_BUS': 'Pótlóbusz'
+        };
+        filterTexts.push(`Mód: ${modeNames[activeFilters.mode] || activeFilters.mode}`);
+      }
+      
+      if (activeFilters.route) {
+        filterTexts.push(`Járat: ${activeFilters.route}`);
+      }
+      
+      if (activeFilters.destination) {
+        filterTexts.push(`Úticél: ${activeFilters.destination}`);
+      }
+      
+      if (activeFilters.status) {
+        const statusNames = {
+          'ontime': 'Pontos',
+          'slight': 'Kis késés',
+          'moderate': 'Közepes késés',
+          'severe': 'Nagy késés'
+        };
+        filterTexts.push(`Státusz: ${statusNames[activeFilters.status]}`);
+      }
+      
+      if (filterTexts.length > 0) {
+        activeFiltersDiv.textContent = `Aktív szűrők: ${filterTexts.join(', ')}`;
+        activeFiltersDiv.style.display = 'block';
+      } else {
+        activeFiltersDiv.style.display = 'none';
+      }
+    }
+
+    function showInfoPopup() {
+      const infoContent = `
+        <strong>Az adatokról</strong><br>
+        Az oldal az MÁV Csoport által közzétett adatok alapján jeleníti meg az autóbuszok és vonatok aktuális helyzetét. A rendszer 1-3 percenként automatikusan frissíti az adatokat (az aktuális járatszám függvényében). <br><br>
+
+        
+        <strong>Jelmagyarázat</strong><br>
+        • 🟢 Zöld: pontos vagy max. 5 perc késés<br>
+        • 🟡 Sárga: 5-15 perc késés<br>
+        • 🟠 Narancssárga: 15-60 perc késés<br>
+        • 🔴 Piros: 60+ perc késés<br><br>
+
+        <strong>Kapcsolatfelvétel:</strong><br>
+        E-Mail: <a href="mailto: dev@hovamegy.hu">dev@hovamegy.hu</a><br>
+        <br><br>
+        
+        <strong>Fontos figyelmeztetés!</strong><br>
+        Ez az oldal nem hivatalos és nem áll kapcsolatban a MÁV Csoporttal. 
+        A fejlesztő semmilyen felelősséget nem vállal az oldal használatából eredő következményekért. 
+        A megjelenített információk csak tájékoztató jellegűek, a fejlesztő nem garantálja azok pontosságát, 
+        teljességét vagy időszerűségét.<br><br>
+        
+        <strong>Utazás előtt mindig ellenőrizd az információkat a MÁV hivatalos oldalán!</strong>
+      `;
+      
+      showAlert('Információ', infoContent);
+    }
+
+    function loadData() {
+      const loadingSpinner = document.getElementById('loading-spinner');
+      loadingSpinner.classList.remove('hidden');
+
+      fetch("train_data.json", {
+        cache: 'no-cache',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      })
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then(data => {
+          // Store all vehicles data
+          allVehicles = data.vehicles;
+          console.log(`Loaded ${allVehicles.length} vehicles`);
+
+          const now = new Date();
+          const updated = new Date(data.lastUpdated * 1000);
+          const timestampElement = document.getElementById("timestamp");
+          const spinner = timestampElement.querySelector('#loading-spinner');
+          timestampElement.textContent = `Utlosó frissítés: ${updated.toLocaleTimeString('hu-HU')}`;
+          timestampElement.appendChild(spinner);
+
+          const secondsSinceUpdate = (now.getTime() - updated.getTime()) / 1000;
+          
+          if (secondsSinceUpdate > 60 * 10) {
+            showAlert(
+              'Figyelem!',
+              `Az adatok utolsó frissítése ${updated.toLocaleTimeString('hu-HU')}-kor volt!<br><br>
+              Ez az oldal nem hivatalos és nem áll kapcsolatban a MÁV Csoporttal. A fejlesztő semmilyen felelősséget nem vállal az oldal használatából eredő következményekért. A megjelenített információk csak tájékoztató jellegűek, a fejlesztő nem garantálja azok pontosságát, teljességét vagy időszerűségét.`
+            );
+          }
+
+          // Render only visible markers
+          requestAnimationFrame(() => renderVisibleMarkers());
+        })
+        .catch(error => {
+          console.error('Error loading data:', error);
+          const timestampElement = document.getElementById("timestamp");
+          const spinner = timestampElement.querySelector('#loading-spinner');
+          timestampElement.textContent = "Hiba az adatok betöltésekor";
+          if (spinner) timestampElement.appendChild(spinner);
+        })
+        .finally(() => {
+          loadingSpinner.classList.add('hidden');
+        });
+    }
+
+    // Add throttled event listeners for performance optimization
+    let moveTimeout;
+    map.on('moveend', () => {
+      clearTimeout(moveTimeout);
+      moveTimeout = setTimeout(renderVisibleMarkers, 150);
+    });
+    map.on('zoomend', renderVisibleMarkers);
+    
+    // Close filter panel when clicking outside
+    document.addEventListener('click', function(event) {
+      const filterPanel = document.getElementById('filter-panel');
+      const filterButton = document.getElementById('filter-button');
+      
+      if (filterPanel.classList.contains('show') && 
+          !filterPanel.contains(event.target) && 
+          !filterButton.contains(event.target)) {
+        toggleFilterPanel();
+      }
+    });
+    
+    // Throttle resize events
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(renderVisibleMarkers, 250);
+    });
+    
+    // Initial load
+    loadData();
+    
+    // Refresh data more frequently for better user experience
+    setInterval(loadData, 45000); // Reduced from 60s to 45s
+    
+    // Refresh visible markers every 20 seconds to update delays
+    // But skip if popup is open to avoid interrupting user interaction
+    setInterval(() => {
+      if (allVehicles.length > 0 && !isPopupOpen) {
+        requestAnimationFrame(() => renderVisibleMarkers());
+      }
+    }, 20000); // Reduced from 30s to 20s
+    
+    // Add performance monitoring
+    let performanceMetrics = {
+      lastRenderTime: 0,
+      avgRenderTime: 0,
+      renderCount: 0
+    };
+    
+    // Wrap renderVisibleMarkers with performance monitoring
+    const originalRenderVisibleMarkers = renderVisibleMarkers;
+    renderVisibleMarkers = function() {
+      const startTime = performance.now();
+      originalRenderVisibleMarkers();
+      const endTime = performance.now();
+      
+      performanceMetrics.lastRenderTime = endTime - startTime;
+      performanceMetrics.renderCount++;
+      performanceMetrics.avgRenderTime = 
+        (performanceMetrics.avgRenderTime * (performanceMetrics.renderCount - 1) + performanceMetrics.lastRenderTime) / performanceMetrics.renderCount;
+      
+      // Log performance if render takes too long
+      if (performanceMetrics.lastRenderTime > 100) {
+        console.warn(`Slow render detected: ${performanceMetrics.lastRenderTime.toFixed(2)}ms`);
+      }
+    };
+
+    // Legend removed for cleaner mobile experience
+
+    // Add attribution
+    L.control.attribution({
+      position: 'bottomleft',
+      prefix: false
+    }).addTo(map);
+    
+    // Performance monitoring (optional - can be removed in production)
+    if (window.performance && window.performance.mark) {
+      map.on('movestart', () => {
+        window.performance.mark('map-move-start');
+      });
+      
+      map.on('moveend', () => {
+        window.performance.mark('map-move-end');
+        try {
+          window.performance.measure('map-move-duration', 'map-move-start', 'map-move-end');
+        } catch (e) {
+          // Ignore if start mark doesn't exist
+        }
+      });
+    }
+  </script>
+</body>
+</html>
