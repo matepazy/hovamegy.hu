@@ -44,7 +44,7 @@
       position: relative;
     }
 
-    /* Timestamp */
+
     #timestamp {
       position: fixed;
       top: 16px;
@@ -62,7 +62,7 @@
       font-weight: 500;
     }
 
-    /* Legend */
+
     .legend {
       background: var(--background-white);
       backdrop-filter: blur(20px);
@@ -101,7 +101,7 @@
       flex-shrink: 0;
     }
 
-    /* Custom markers */
+
     .marker-container {
       position: relative;
       width: 32px;
@@ -143,7 +143,7 @@
       z-index: 1;
     }
 
-    /* Cluster marker styling */
+
     .marker-cluster {
       background-clip: padding-box;
       border-radius: 20px;
@@ -184,7 +184,7 @@
       background-color: rgba(241, 128, 23, 0.6);
     }
 
-    /* Route styling */
+
     .route-number {
       padding: 4px 8px;
       border-radius: 6px;
@@ -208,7 +208,7 @@
     }
 
 
-    /* Popup styling */
+
     .leaflet-popup-content-wrapper {
       border-radius: var(--border-radius);
       box-shadow: var(--shadow-lg);
@@ -329,7 +329,7 @@
       font-weight: 500;
     }
 
-    /* Tooltip styling */
+
     .leaflet-tooltip {
       background: var(--text-primary);
       border: none;
@@ -346,7 +346,7 @@
       border-top-color: var(--text-primary);
     }
 
-    /* Mobile optimizations */
+
     @media (max-width: 768px) {
       .top-controls {
         top: 12px;
@@ -432,7 +432,7 @@
       }
     }
 
-    /* Loading animation */
+
     .loading-spinner {
       display: inline-block;
       width: 12px;
@@ -453,7 +453,7 @@
       display: none;
     }
 
-    /* Info button and filter controls */
+
     .top-controls {
       position: fixed;
       top: 16px;
@@ -606,7 +606,7 @@
       margin-top: 8px;
     }
 
-    /* Alert styling */
+
     .alert {
       position: fixed;
       top: 50%;
@@ -652,7 +652,7 @@
       background: #1d4ed8;
     }
 
-    /* Scrollbar styling */
+
     .popup-table-container::-webkit-scrollbar {
       width: 4px;
     }
@@ -723,30 +723,16 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
   <script>
 
-    showAlert("Hiányos/hibás adatok!",`A MÁV Csoport a súlyos vihart követő napokban részben lezárta az EMMA API-t. Az adatok így csak részleges, esetenként hibásan érhetőek csak el.
-    <br><b>Ismert hibák:</b>
-    <ul>
-      <li>Néhány jármű számára nem elérhető a részletes menetrend</li>
-      <li>Néhány jármű nem jelenik meg a térképen</li>
-      <li>Az útvonaltervezés funkció nem elérhető</li>
-      <li>Fokozottan késleltetett frissítések</li>
-      </ul>
-      
-      Amennyiben ezen kívüli hibát vélsz felfedezni jelezd a <a href="mailto:dev@hovamegy.hu">dev@hovamegy.hu</a> email címen, vagy online a <a href="https://matepazy.hu/error/submit">hibabejelentő oldalamon.</a>
-      <br>
-      A megoldáson dolgozom, de jelenleg az adatok pontosságáért nem vállalok felelősséget. Mindenképpen ellenőrizd a <a href="https://emma.mav.hu">MÁV hivatalos oldalát</a> friss, és pontos információkért.
-    `)
+    
     const map = L.map('map', {
       zoomControl: false,
       attributionControl: false,
-      preferCanvas: true, // Use canvas for better performance
-      minZoom: 7, // Prevent zooming out too far
+      preferCanvas: true,
+      minZoom: 7,
       maxZoom: 18
-      // maxBounds: [[45.7, 16.2], [48.6, 22.8]], // Tighter Hungary bounds - DISABLED
-      // maxBoundsViscosity: 1.0 // Stricter boundary enforcement - DISABLED
-    }).setView([47.162494, 19.503304], 8); // Center of Hungary with higher zoom
+    }).setView([47.162494, 19.503304], 8);
 
-    // Add zoom control to bottom right
+
     L.control.zoom({
       position: 'bottomright'
     }).addTo(map);
@@ -781,11 +767,11 @@
       status: ''
     };
     let markerClusterGroup = L.markerClusterGroup({
-      maxClusterRadius: 30, // Balanced radius for better individual dot visibility
+      maxClusterRadius: 30,
       spiderfyOnMaxZoom: true,
       showCoverageOnHover: false,
       zoomToBoundsOnClick: true,
-      disableClusteringAtZoom: 8, // Show individual dots at default zoom level
+      disableClusteringAtZoom: 8,
       iconCreateFunction: function(cluster) {
         const count = cluster.getChildCount();
         let size = 'small';
@@ -801,18 +787,18 @@
     });
     map.addLayer(markerClusterGroup);
     
-    // Performance optimization: only render markers in viewport
+
     let visibleMarkers = new Set();
     let renderTimeout = null;
     
-    // Track open popup to preserve it during re-rendering
+    
     let openPopupVehicleId = null;
     let isPopupOpen = false;
     
-    // Listen for popup events to track state
+    
     map.on('popupopen', function(e) {
       isPopupOpen = true;
-      // Find which vehicle this popup belongs to
+
       const popupContent = e.popup.getContent();
       allVehicles.forEach((v, index) => {
         if (popupContent.includes(v.name) && popupContent.includes(v.headsgn || '')) {
@@ -827,31 +813,31 @@
     });
 
     function delayColor(min) {
-      if (min >= 60) return '#ef4444'; // red
-      if (min >= 15) return '#f59e0b'; // orange
-      if (min >= 5) return '#eab308';  // yellow
-      return '#10b981'; // green
+      if (min >= 60) return '#ef4444';
+      if (min >= 15) return '#f59e0b';
+      if (min >= 5) return '#eab308';
+      return '#10b981';
     }
 
-    // Cache for marker icons to improve performance
+
     const iconCache = new Map();
-    const MAX_CACHE_SIZE = 100; // Limit cache size to prevent memory issues
+    const MAX_CACHE_SIZE = 100;
     
     function createMarkerIcon(color, heading) {
-      const roundedHeading = Math.round(heading / 30) * 30; // Round to nearest 30 degrees for better caching
+      const roundedHeading = Math.round(heading / 30) * 30;
       const cacheKey = `${color}-${roundedHeading}`;
       
       if (iconCache.has(cacheKey)) {
         return iconCache.get(cacheKey);
       }
       
-      // Clear cache if it gets too large
+      
       if (iconCache.size >= MAX_CACHE_SIZE) {
         const firstKey = iconCache.keys().next().value;
         iconCache.delete(firstKey);
       }
       
-      // Use template string for better performance
+      
       const iconHtml = `
         <div class="marker-container">
           <div class="triangle-wrapper" style="transform: rotate(${roundedHeading}deg)">
@@ -872,14 +858,14 @@
       return icon;
     }
     
-    // Check if a point is within the current map bounds with buffer
+    
     function isInViewport(lat, lon, buffer = 0.15) {
       const bounds = map.getBounds();
       const extendedBounds = bounds.pad(buffer);
       return extendedBounds.contains([lat, lon]);
     }
     
-    // Efficiently render only visible markers with performance optimizations
+    
     function renderVisibleMarkers() {
       if (renderTimeout) {
         clearTimeout(renderTimeout);
@@ -893,23 +879,21 @@
         const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
         
         const vehiclesToRender = filteredVehicles.length > 0 ? filteredVehicles : allVehicles;
-        console.log(`Rendering: zoom=${currentZoom}, shouldCluster=${shouldCluster}, vehicles=${vehiclesToRender.length}`);
+
         
-        // Always show something when zoomed out
+
          if (currentZoom < 8) {
-          // At very low zoom levels, reduce viewport filtering to show more markers
-          const allVisibleVehicles = vehiclesToRender.filter((v, index) => {
-            return isInViewport(v.lat, v.lon, 0.5); // Larger buffer for low zoom
-          });
+            const allVisibleVehicles = vehiclesToRender.filter((v, index) => {
+              return isInViewport(v.lat, v.lon, 0.5);
+            });
           
           if (allVisibleVehicles.length === 0) {
-            // If no vehicles in viewport, show some anyway
             const centerLat = map.getCenter().lat;
             const centerLng = map.getCenter().lng;
             const nearbyVehicles = vehiclesToRender
               .map((v, index) => ({ ...v, index, distance: Math.abs(v.lat - centerLat) + Math.abs(v.lon - centerLng) }))
               .sort((a, b) => a.distance - b.distance)
-              .slice(0, 50); // Show up to 50 nearest vehicles
+              .slice(0, 50);
             
             nearbyVehicles.forEach(v => {
               const marker = L.marker([v.lat, v.lon], {
@@ -926,7 +910,7 @@
           }
         }
         
-        // Store popup state before clearing markers
+        
         let popupToReopen = null;
         if (isPopupOpen && openPopupVehicleId !== null) {
           const openPopup = map.getPopup();
@@ -938,26 +922,26 @@
           }
         }
         
-        // Clear existing markers
+        
         markerClusterGroup.clearLayers();
         markers.forEach(m => m.remove());
         markers = [];
         visibleMarkers.clear();
         
-        // Pre-filter vehicles for better performance - only show vehicles in current viewport
+
         const bounds = map.getBounds();
         const zoom = map.getZoom();
-        let maxVehicles = zoom < 10 ? 200 : 500; // Limit based on zoom level
+        const maxVehicles = zoom < 10 ? 200 : 500;
         
         const visibleVehicles = vehiclesToRender
           .filter((v, index) => bounds.contains([v.lat, v.lon]))
-          .slice(0, maxVehicles); // Limit number of vehicles for performance
+          .slice(0, maxVehicles);
         
-        console.log(`Found ${visibleVehicles.length} visible vehicles out of ${vehiclesToRender.length} total (zoom: ${zoom})`);
+
         
-        // Skip rendering if too many vehicles to prevent performance issues
+        
         if (visibleVehicles.length > 1000) {
-          console.warn(`Too many vehicles to render (${visibleVehicles.length}), skipping render`);
+
           return;
         }
         
@@ -992,20 +976,20 @@
             icon: createMarkerIcon(color, heading)
           });
 
-          // Lightweight tooltip
+
           marker.bindTooltip(`${styledName.replace(/<[^>]*>/g, '')} • ${speed} km/h • ${delayText}`, {
             direction: "top",
             offset: [0, -10]
           });
 
-          // Lazy popup generation for better performance
+
           marker.on('click', function() {
-            console.log(`${v.mode}`);
+  
             if (!this.getPopup()) {
               let table = '<div class="popup-table-container" id="popup-table-container"><table><thead><tr><th>Állomás</th><th>Érkezés</th><th>Indulás</th><th>Vágány</th></tr></thead><tbody>';
               let nextStationIndex = -1;
               
-              // Find the next station (first non-passed station)
+
               v.stops.forEach((s, index) => {
                 const isPassed = (s.rd || 0) < nowSec;
                 if (nextStationIndex === -1 && !isPassed) {
@@ -1068,7 +1052,7 @@
             }
             this.openPopup();
             
-            // Auto-scroll to next station after popup opens
+            
             setTimeout(() => {
               const nextStationRow = document.getElementById('next-station-row');
               const tableContainer = document.getElementById('popup-table-container');
@@ -1090,14 +1074,14 @@
           markers.push(marker);
           visibleMarkers.add(index);
           
-          // Reopen popup if it was open before re-rendering
+
           if (popupToReopen && index === popupToReopen.vehicleId) {
             setTimeout(() => {
               marker.openPopup();
-            }, 50); // Small delay to ensure marker is fully rendered
+            }, 100);
           }
         });
-      }, 100); // Optimized debounce for better performance
+      }, 100);
     }
 
     function formatTime(sec) {
@@ -1160,25 +1144,24 @@
         const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
         const delay = Math.round(getCurrentDelay(vehicle.stops, nowSec) / 60);
         
-        // Mode filter - handle Busz/Autóbusz as the same
+
         if (modeFilter) {
           let vehicleMode = vehicle.mode;
           let filterMode = modeFilter;
           
-          // Treat BUS and COACH as the same (both are buses)
+
           if ((vehicleMode === 'BUS' || vehicleMode === 'COACH') && (filterMode === 'BUS' || filterMode === 'COACH')) {
-            // Match - continue
-          } else if (vehicleMode !== filterMode) {
+            } else if (vehicleMode !== filterMode) {
             return false;
           }
         }
         
-        // Route filter - search in both name and extracted route number
+        
         if (routeFilter) {
           const vehicleName = vehicle.name.toLowerCase();
           let routeFound = vehicleName.includes(routeFilter);
           
-          // Also check if route number is in brackets [XXX]
+          
           if (!routeFound) {
             const routeMatch = vehicle.name.match(/\[([^\]]+)\]/);
             if (routeMatch) {
@@ -1192,16 +1175,16 @@
           }
         }
         
-        // Destination filter - search in both headsgn and stop names
+        
         if (destinationFilter) {
           let destinationFound = false;
           
-          // Check headsign
+          
           if (vehicle.headsgn && vehicle.headsgn.toLowerCase().includes(destinationFilter)) {
             destinationFound = true;
           }
           
-          // Also check final destination from stops
+          
           if (!destinationFound && vehicle.stops && vehicle.stops.length > 0) {
             const finalStop = vehicle.stops[vehicle.stops.length - 1];
             if (finalStop.name && finalStop.name.toLowerCase().includes(destinationFilter)) {
@@ -1209,7 +1192,7 @@
             }
           }
           
-          // Check all stop names for partial matches
+          
           if (!destinationFound && vehicle.stops) {
             destinationFound = vehicle.stops.some(stop => 
               stop.name && stop.name.toLowerCase().includes(destinationFilter)
@@ -1221,7 +1204,7 @@
           }
         }
         
-        // Status filter
+        
         if (statusFilter) {
           if (statusFilter === 'ontime' && delay > 5) return false;
           if (statusFilter === 'slight' && (delay < 5 || delay > 15)) return false;
@@ -1309,8 +1292,13 @@
 
         <strong>Kapcsolatfelvétel:</strong><br>
         E-Mail: <a href="mailto: dev@hovamegy.hu">dev@hovamegy.hu</a><br>
-        <br><br>
+        <br>
         
+        <strong>Ez a projekt nyílt forráskódú!</strong>
+        <a href="https://github.com/matepazy/hovamegy.hu" target="_blank">Nézd meg a Githubon!</a><br><br>
+        
+        
+
         <strong>Fontos figyelmeztetés!</strong><br>
         Ez az oldal nem hivatalos és nem áll kapcsolatban a MÁV Csoporttal. 
         A fejlesztő semmilyen felelősséget nem vállal az oldal használatából eredő következményekért. 
@@ -1318,6 +1306,10 @@
         teljességét vagy időszerűségét.<br><br>
         
         <strong>Utazás előtt mindig ellenőrizd az információkat a MÁV hivatalos oldalán!</strong>
+        <br><br>
+        <a href="https://ko-fi.com/matepazy/?hidefeed=true&widget=true&embed=true&preview=true' style='border:none;width:100%;padding:4px;background:#f9f9f9;' height='712'" target="_blank">
+          <img src="https://storage.ko-fi.com/cdn/brandasset/v2/support_me_on_kofi_beige.png" alt="Support me on Ko-fi" style="height: 36px; border: 0;">
+        </a><br>
       `;
       
       showAlert('Információ', infoContent);
@@ -1339,9 +1331,9 @@
           return res.json();
         })
         .then(data => {
-          // Store all vehicles data
+
           allVehicles = data.vehicles;
-          console.log(`Loaded ${allVehicles.length} vehicles`);
+  
 
           const now = new Date();
           const updated = new Date(data.lastUpdated * 1000);
@@ -1356,15 +1348,15 @@
             showAlert(
               'Figyelem!',
               `Az adatok utolsó frissítése ${updated.toLocaleTimeString('hu-HU')}-kor volt!<br><br>
-              Ez az oldal nem hivatalos és nem áll kapcsolatban a MÁV Csoporttal. A fejlesztő semmilyen felelősséget nem vállal az oldal használatából eredő következményekért. A megjelenített információk csak tájékoztató jellegűek, a fejlesztő nem garantálja azok pontosságát, teljességét vagy időszerűségét.`
+              `
             );
           }
 
-          // Render only visible markers
+
           requestAnimationFrame(() => renderVisibleMarkers());
         })
         .catch(error => {
-          console.error('Error loading data:', error);
+  
           const timestampElement = document.getElementById("timestamp");
           const spinner = timestampElement.querySelector('#loading-spinner');
           timestampElement.textContent = "Hiba az adatok betöltésekor";
@@ -1375,7 +1367,7 @@
         });
     }
 
-    // Add throttled event listeners for performance optimization
+
     let moveTimeout;
     map.on('moveend', () => {
       clearTimeout(moveTimeout);
@@ -1383,7 +1375,7 @@
     });
     map.on('zoomend', renderVisibleMarkers);
     
-    // Close filter panel when clicking outside
+    
     document.addEventListener('click', function(event) {
       const filterPanel = document.getElementById('filter-panel');
       const filterButton = document.getElementById('filter-button');
@@ -1395,35 +1387,32 @@
       }
     });
     
-    // Throttle resize events
+    
     let resizeTimeout;
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(renderVisibleMarkers, 250);
     });
     
-    // Initial load
+    
     loadData();
     
-    // Refresh data more frequently for better user experience
-    setInterval(loadData, 45000); // Reduced from 60s to 45s
+    setInterval(loadData, 45000);
     
-    // Refresh visible markers every 20 seconds to update delays
-    // But skip if popup is open to avoid interrupting user interaction
     setInterval(() => {
       if (allVehicles.length > 0 && !isPopupOpen) {
         requestAnimationFrame(() => renderVisibleMarkers());
       }
-    }, 20000); // Reduced from 30s to 20s
+    }, 20000);
     
-    // Add performance monitoring
+    
     let performanceMetrics = {
       lastRenderTime: 0,
       avgRenderTime: 0,
       renderCount: 0
     };
     
-    // Wrap renderVisibleMarkers with performance monitoring
+    
     const originalRenderVisibleMarkers = renderVisibleMarkers;
     renderVisibleMarkers = function() {
       const startTime = performance.now();
@@ -1435,21 +1424,21 @@
       performanceMetrics.avgRenderTime = 
         (performanceMetrics.avgRenderTime * (performanceMetrics.renderCount - 1) + performanceMetrics.lastRenderTime) / performanceMetrics.renderCount;
       
-      // Log performance if render takes too long
+      
       if (performanceMetrics.lastRenderTime > 100) {
-        console.warn(`Slow render detected: ${performanceMetrics.lastRenderTime.toFixed(2)}ms`);
+
       }
     };
 
-    // Legend removed for cleaner mobile experience
 
-    // Add attribution
+
+    
     L.control.attribution({
       position: 'bottomleft',
       prefix: false
     }).addTo(map);
     
-    // Performance monitoring (optional - can be removed in production)
+    
     if (window.performance && window.performance.mark) {
       map.on('movestart', () => {
         window.performance.mark('map-move-start');
@@ -1460,7 +1449,6 @@
         try {
           window.performance.measure('map-move-duration', 'map-move-start', 'map-move-end');
         } catch (e) {
-          // Ignore if start mark doesn't exist
         }
       });
     }

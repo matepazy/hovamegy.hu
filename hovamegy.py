@@ -1,12 +1,3 @@
-#!/usr/bin/env python3
-"""
-Holavonat - Standalone Python Script
-A simple web server that displays Hungarian train positions without Docker.
-
-This script combines the Flask web server and data updater functionality
-into a single standalone application.
-"""
-
 import requests
 import json
 import time
@@ -114,22 +105,19 @@ def fetch_trip_details(session, gtfs_id, service_day):
         response.raise_for_status()
         return response.json().get("data", {}).get("trip", {})
     except Exception as e:
-        print(f"Error fetching trip details for {gtfs_id}: {e}")
         return {}
 
 def update_train_data():
     """Update train data from EMMA API with optimized concurrent processing."""
     try:
         service_day = get_service_day()
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] Fetching vehicle positions...")
-
+        
         with requests.Session() as session:
             # Configure session for better performance
             session.headers.update(HEADERS)
             
             vehicles = fetch_vehicle_positions(session)
-            print(f"Found {len(vehicles)} vehicles")
-
+            
             all_data = {
                 "lastUpdated": int(time.time()),
                 "vehicles": []
@@ -212,16 +200,13 @@ def update_train_data():
                         vehicle = future_to_vehicle[future]
                         trip = vehicle.get("trip", {})
                         gtfs_id = trip.get("gtfsId", "unknown")
-                        print(f"Error processing vehicle {gtfs_id}: {e}")
-
+            
             # Save data to file
             with open(DATA_FILE, "w", encoding="utf-8") as f:
                 json.dump(all_data, f, separators=(",", ":"), ensure_ascii=False)
             
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] Updated train data ({len(all_data['vehicles'])} vehicles)")
-            
     except Exception as e:
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] Error updating train data: {e}")
+        pass
 
 def data_updater_thread():
     """Background thread that periodically updates train data."""
@@ -298,7 +283,6 @@ def plan_trip():
     """Handle trip planning requests."""
     try:
         data = request.get_json()
-        print(f"Received trip planning request: {data}")
         
         if not data:
             return jsonify({"error": "No data provided"}), 400
@@ -349,7 +333,7 @@ def plan_trip():
                     query_params.append(f'time: "{time_str}"')
                     query_params.append(f'arriveBy: {"true" if arrive_by else "false"}')
             except ValueError as e:
-                print(f"Error parsing dateTime: {e}")
+                pass
         
         # Construct GraphQL query for trip planning
         query = f'''
@@ -400,8 +384,6 @@ def plan_trip():
             }}
         }}'''
         
-        print(f"Sending GraphQL query to EMMA API...")
-        
         # Send request to EMMA API
         response = requests.post(
             GRAPHQL_ENDPOINT,
@@ -410,23 +392,16 @@ def plan_trip():
             timeout=30
         )
         
-        print(f"EMMA API response status: {response.status_code}")
-        
         if response.status_code != 200:
-            print(f"API error response: {response.text}")
             return jsonify({"error": f"API request failed with status {response.status_code}"}), 500
         
         result = response.json()
-        print(f"EMMA API result: {result}")
         
         if "errors" in result:
-            print(f"GraphQL errors: {result['errors']}")
             return jsonify({"error": "GraphQL errors", "details": result["errors"]}), 500
         
         plan_data = result.get("data", {}).get("plan", {})
         itineraries = plan_data.get("itineraries", [])
-        
-        print(f"Found {len(itineraries)} itineraries")
         
         return jsonify({
             "success": True,
@@ -436,51 +411,32 @@ def plan_trip():
         })
         
     except requests.exceptions.Timeout:
-        print("Request timeout occurred")
         return jsonify({"error": "Request timeout - please try again"}), 504
     except requests.exceptions.RequestException as e:
-        print(f"Network error: {str(e)}")
         return jsonify({"error": f"Network error: {str(e)}"}), 503
     except Exception as e:
-        print(f"Unexpected error in plan_trip: {str(e)}")
-        import traceback
-        traceback.print_exc()
         return jsonify({"error": f"Internal server error: {str(e)}"}), 500
 
 def main():
     """Main function to start the application."""
-    print("Holavonat - Standalone Python Server")
-    print("=====================================")
-    
     # Check if static folder exists
     if not os.path.exists('static'):
-        print("Error: 'static' folder not found!")
-        print("Please make sure you're running this script from the project root directory.")
         sys.exit(1)
     
     if not os.path.exists('static/index.html'):
-        print("Error: 'static/index.html' not found!")
-        print("Please make sure the static files are in the correct location.")
         sys.exit(1)
     
     # Start data updater thread
-    print("Starting background data updater...")
     updater_thread = threading.Thread(target=data_updater_thread, daemon=True)
     updater_thread.start()
     
     # Initial data fetch
-    print("Performing initial data fetch...")
     update_train_data()
     
     # Start Flask server
-    print("Starting web server...")
-    print("Open your browser and go to: http://localhost:8000")
-    print("Press Ctrl+C to stop the server")
-    
     try:
         app.run(host='0.0.0.0', port=8000, debug=False)
     except KeyboardInterrupt:
-        print("\nShutting down...")
         sys.exit(0)
 
 if __name__ == "__main__":

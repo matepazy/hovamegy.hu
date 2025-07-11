@@ -1312,7 +1312,7 @@
         displayResults(data.plan);
         
       } catch (error) {
-        console.error('Trip planning error:', error);
+        
         resultsDiv.innerHTML = `<div class="error">Hiba: ${error.message}</div>`;
       }
     }
@@ -1641,16 +1641,16 @@
     
     function showRouteOnMap(itinerary) {
       if (!itinerary || !itinerary.legs) {
-        console.log('No itinerary or legs found');
+
         return;
       }
       
-      console.log('Showing route for itinerary:', itinerary);
+      
       const routeGroup = L.layerGroup();
       let hasValidRoute = false;
       
       itinerary.legs.forEach((leg, legIndex) => {
-        console.log(`Processing leg ${legIndex}:`, leg);
+        
         
         let coordinates = [];
         
@@ -1658,18 +1658,18 @@
         if (leg.legGeometry && leg.legGeometry.points) {
           // Decode polyline if available
           coordinates = decodePolyline(leg.legGeometry.points);
-          console.log(`Decoded ${coordinates.length} coordinates from polyline`);
+          
         } else if (leg.from && leg.to && leg.from.lat && leg.from.lon && leg.to.lat && leg.to.lon) {
           // Fallback: create simple straight line between start and end points
           coordinates = [[leg.from.lat, leg.from.lon], [leg.to.lat, leg.to.lon]];
-          console.log('Using fallback straight line coordinates');
+          
         } else {
-          console.log('No geometry data available for leg', legIndex);
+
           return;
         }
         
         if (coordinates.length < 2) {
-          console.log('Not enough coordinates for leg', legIndex);
+
           return;
         }
         
@@ -1763,7 +1763,7 @@
       if (hasValidRoute) {
         routeGroup.addTo(map);
         routeLayers.push(routeGroup);
-        console.log('Route added to map with', routeGroup.getLayers().length, 'layers');
+
         
         // Fit map to show the entire route
         if (routeGroup.getLayers().length > 0) {
@@ -1771,7 +1771,7 @@
           map.fitBounds(group.getBounds().pad(0.1));
         }
       } else {
-        console.log('No valid route data found to display');
+
       }
     }
     
@@ -1821,7 +1821,7 @@
     function decodePolyline(encoded) {
       // Simple polyline decoder for Google's polyline algorithm
       if (!encoded || typeof encoded !== 'string') {
-        console.log('Invalid polyline string:', encoded);
+        
         return [];
       }
       
@@ -1864,10 +1864,10 @@
           }
         }
         
-        console.log(`Successfully decoded ${coordinates.length} coordinates`);
+
         return coordinates;
       } catch (error) {
-        console.error('Error decoding polyline:', error);
+
         return [];
       }
     }
@@ -1922,7 +1922,7 @@
          displaySuggestions(stations, type);
          
        } catch (error) {
-         console.error('Error searching stations:', error);
+         
          hideSuggestions(type);
        }
      }
@@ -1930,7 +1930,7 @@
     function displaySuggestions(data, type) {
        const suggestionsDiv = document.getElementById(`${type}-suggestions`);
        
-       console.log('API response data:', data);
+       
        
        // Handle different response formats
        let stations = [];
@@ -1943,7 +1943,7 @@
        } else if (data && Array.isArray(data.results)) {
          stations = data.results;
        } else {
-         console.error('Unexpected API response format:', data);
+         
          hideSuggestions(type);
          return;
        }
