@@ -8,6 +8,7 @@ Célom ezzel az, hogy a vonatinfóhoz hasonló felhasználói felületet és fun
 
 ## Funkciók
 - valós idejű járatkövetés*
+
 **az adatok körübelül 1-3 percenként frissülnek*
 - részletes menetrend megtekintése
 - szűrés járatokra/járműtípusokra
