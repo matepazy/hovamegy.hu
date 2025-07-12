@@ -9,9 +9,9 @@ from flask import Flask, send_from_directory, jsonify, request
 
 # Configuration
 GRAPHQL_ENDPOINT = "https://emma.mav.hu//otp2-backend/otp/routers/default/index/graphql"
-DATA_FILE = "train_data.json"
+DATA_FILE = "live_data.json"
 UPDATE_INTERVAL = 45  # seconds - reduced for faster updates
-MAX_CONCURRENT_REQUESTS = 10  # Limit concurrent API calls
+MAX_CONCURRENT_REQUESTS = 20  # Limit concurrent API calls
 
 HEADERS = {
     "Accept": "*/*",
@@ -225,7 +225,7 @@ def serve_trip():
     """Serve the trip planning page."""
     return send_from_directory(app.static_folder, 'trip.html')
 
-@app.route('/train_data.json')
+@app.route('/live_data.json')
 def serve_train_data():
     """Serve the train data JSON file."""
     try:
