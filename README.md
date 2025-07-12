@@ -1,6 +1,6 @@
 # HovaMegy.hu - valós idejű járatkövetés
 
-> Ez az oldal nem hivatalos és nem áll kapcsolatban a MÁV Csoporttal. A fejlesztő semmilyen felelősséget nem vállal az oldal használatából eredő következményekért. A megjelenített információk csak tájékoztató jellegűek, a fejlesztő nem garantálja azok pontosságát, teljességét vagy időszerűségét.
+> Ez az program nem hivatalos és nem áll kapcsolatban a MÁV Csoporttal. A fejlesztő semmilyen felelősséget nem vállal az oldal használatából eredő következményekért. A megjelenített információk csak tájékoztató jellegűek, a fejlesztő nem garantálja azok pontosságát, teljességét vagy időszerűségét.
 
 ## A projekt célja
 A MÁV Csoport 2025. június 21-én leállította a vonatinfót. Ezt a már meglévő EMMA rendszerrel pótolták, aminek a funkcionalitása a vonatinfóhoz képest hiányos.
@@ -8,6 +8,7 @@ Célom ezzel az, hogy a vonatinfóhoz hasonló felhasználói felületet és fun
 
 ## Funkciók
 - valós idejű járatkövetés*
+
 **az adatok körübelül 1-3 percenként frissülnek*
 - részletes menetrend megtekintése
 - szűrés járatokra/járműtípusokra
