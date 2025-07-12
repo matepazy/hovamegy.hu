@@ -68,3 +68,23 @@ A felület a `localhost:8000` címen érhető el.
 
 
 Kiindulásként a [holavonatot](https://gitlab.com/holavonat1/holavonat-web) használtam, ezt fejlesztettem tovább.
+
+## API Használata
+API Base URL: `https://hovamegy.hu`
+##
+
+**`GET`** `/live_data.json`
+
+Megadja az összes járat valós idejű helyzetét. *(jobb ha a hivatalos EMMA API-t használod erre)*
+##
+
+**`POST`** `/plan`
+
+Utazástervező API endpoint. JSON formátumban várja a következő paramétereket:
+- `from`: Indulási pont koordinátái (`{"lat": szélességi_fok, "lon": hosszúsági_fok}`)
+- `to`: Érkezési pont koordinátái (`{"lat": szélességi_fok, "lon": hosszúsági_fok}`)
+- `dateTime`: Utazás dátuma és időpontja (ISO 8601 formátumban, pl. `"2025-07-12T22:00"`)
+- `arriveBy`: `false` ha indulási időpont, `true` ha érkezési időpont
+- `numItineraries`: Visszaadandó útvonalak száma (opcionális, alapértelmezett: 3)
+
+Válasz formátuma: JSON objektum az útvonal részleteivel, menetidőkkel és átszállási információkkal.
